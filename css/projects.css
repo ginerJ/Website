@@ -1,0 +1,18 @@
+:root {
+  --color-tb: #67ae52;
+  --color-td: #2ef0dc;
+  --color-p: #be694f;
+}
+
+.tb-text{
+    color: var(--color-tb);
+}
+
+
+.td-text{
+    color: var(--color-td);
+}
+
+.p-text{
+    color: var(--color-p);
+}

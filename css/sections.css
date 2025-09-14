@@ -1,0 +1,90 @@
+:root {
+  --color-primary: #1e1f22;
+  --color-special: #299fa2;
+  --color-orange: #c56738;
+  --color-secondary: #2b2d30;
+  --color-secondary-selected: #414245;
+  --color-text: #b3aea9;
+}
+
+
+
+.base-primary-section{
+    background-color: var(--color-primary);
+    border-width: 8px;
+    border-color: var(--color-primary);
+    color: var(--color-text);
+}
+
+.base-secondary-section {
+    background-color: var(--color-secondary);
+    border-width: 8px;
+    border-color: var(--color-primary);
+    color: var(--color-text);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.base-secondary-hoverable {
+    background-color: var(--color-secondary);
+    border-width: 8px;
+    border-color: var(--color-primary);
+    color: var(--color-text);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.base-secondary-hoverable:hover {
+    background-color: var(--color-secondary-selected);
+    border-width: 2px;
+  
+}
+
+.top-section{
+    padding: 1.5rem;             
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    display: flex;               
+    justify-content: space-between;
+}
+
+.name-section {
+  text-align: center;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+
+.text-color {
+  color: var(--color-text);
+}
+
+.text-special {
+  color: var(--color-special);
+}
+
+.text-orange {
+  color: var(--color-orange);
+}
+
+.bg-primary {
+  background-color: var(--color-primary);
+}
+
+.bg-secondary {
+  background-color: var(--color-secondary);
+}
+
+.bg-secondary-selected {
+  background-color: var(--color-secondary-selected);
+}
+
+.border-primary {
+  border-color: var(--color-primary);
+}
+
+.border-secondary {
+  border-color: var(--color-secondary);
+}
+
+.border-secondary-selected {
+  border-color: var(--color-secondary-selected);
+}
