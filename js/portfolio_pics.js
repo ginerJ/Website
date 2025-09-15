@@ -11,16 +11,17 @@ const pics = [
   {img: "penguin.png"},
   {img: "pinocchi.png"},
   {img: "pontiff.png"},
-  {img: "quadruped_shade.png"},
   {img: "racoon.png"},
-  {img: "roly_poly.png"},
   {img: "sword_shade.png"},
+  {img: "quadruped_shade.png"},
+  {img: "roly_poly.png"},
   {img: "teddy.png"}
 ];
 
 function renderPics() {
-    const gap = 6;
-    const size = Math.floor((window.innerWidth - 8 * gap) / 4);
+    const n = 4;
+    const gap = 17;
+    const size = Math.floor((window.innerWidth - (n-1) * gap) / n);
 
     document.getElementById("pics-container").innerHTML = pics.map(p => `
     <div class="inline-block rounded w-fit">
