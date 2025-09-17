@@ -1,5 +1,5 @@
 const projects = [
-  { title: "Tameable Beasts", desc: "Mc mod that adds tameable mobs.", link: "#", 
+  { title: "Tameable Beasts", desc: "Mc mod that adds tameable mobs.", link: "tb_lore.html", 
     img: "./assets/images/tb_logo.png", color:"tb-text", w:12 , h:24 },
   
   { title: "The Digimod", desc: "Mc mod that adds digital creatures for you to rise.", link: "#", 
