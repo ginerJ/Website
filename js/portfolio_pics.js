@@ -19,9 +19,9 @@ const pics = [
 ];
 
 function renderPics() {
-    const n = 4;
-    const gap = 17;
-    const size = Math.floor((window.innerWidth - (n-1) * gap) / n);
+    const cols = window.innerWidth < window.innerHeight? 2:4;
+    const gap = 11;
+    const size = Math.floor((window.innerWidth - (cols-1) * gap) / cols);
 
     document.getElementById("pics-container").innerHTML = pics.map(p => `
     <div class="inline-block rounded w-fit">

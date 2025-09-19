@@ -7,8 +7,6 @@
   --color-text: #b3aea9;
 }
 
-
-
 .base-primary-section{
     background-color: var(--color-primary);
     border-width: 2px;
@@ -30,6 +28,7 @@
     border-color: var(--color-primary);
     color: var(--color-text);
     transition: background-color 0.3s ease, color 0.3s ease;
+    cursor: pointer;
 }
 
 .base-secondary-hoverable:hover {
