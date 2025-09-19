@@ -69,7 +69,7 @@ document.getElementById("scarecrow-lore").innerHTML = `
     <span class="text-special">SCARECROW ALLAY</span>: Can be created by interacting with a <span class="text-orange">Purple
     Allay</span> (which is a rare drop from <span class="text-orange">Illagers</span>)
     on a <span class="text-orange">Scarecrow Block</span>. They can be given a <span class="text-orange">Big Iron Hoe</span> 
-    to boost their attack. A happy scarecrow will drop Wheat from brushing.
+    to boost their attack. A happy scarecrow will drop <span class="text-orange">Wheat</span> from brushing, this very item can be used to heal them.
   </p>
 `;
 
