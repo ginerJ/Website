@@ -126,6 +126,13 @@ EVO_STAGE_LABELS = ["Baby I", "Baby II", "Rookie", "Champion", "Perfect", "Ultim
 # below was checked against BOTH the lang display name AND evo_stage/tier
 # before being added - do the same before adding more.
 CONFIRMED_ALIASES: dict[str, str] = {
+	"Yarmon": "keemon",  # lang: "entity.thedigimod.keemon" = "Yarmon" (mod's
+		# own file/entity slug is "keemon", but its actual in-game display name
+		# is "Yarmon" - a separate rename/mixup bug from the "Keemon" one below).
+		# Confirmed by ModderG (mod author): Yarmon and Keemon are two distinct
+		# already-implemented digimon, not a duplicate card for the same one.
+		# See SLUG_OVERRIDES for how "Keemon" itself resolves to a different
+		# file ("kiimon.json") instead of colliding with this one.
 	"DarkTyranomon": "darktyrannomon",  # lang: "Dark Tyrannomon"
 	"Darklizamon": "darklizardmon",  # lang: "DarkLizardmon"
 	"Flarelizamon": "flarerizamon",  # lang: "Flarerizamon"
@@ -151,14 +158,23 @@ CONFIRMED_ALIASES: dict[str, str] = {
 		# digimon - don't alias it.
 }
 
+# Trello-vs-repo name collisions where the direct slugify() match would grab
+# the WRONG implemented file - checked before the direct-match/CONFIRMED_ALIASES
+# lookup in resolve_slug(). Every entry here is a case where two DIFFERENT
+# already-implemented digimon have file/lang names that cross over.
+SLUG_OVERRIDES: dict[str, str] = {
+	"Keemon": "kiimon",  # slugify("Keemon") == "keemon", which IS an
+		# implemented file - but keemon.json's actual in-game name is "Yarmon"
+		# (see CONFIRMED_ALIASES above), not Keemon. The real "Keemon" (lang:
+		# "Keemon"/"Keemon Digitama") is a separate file, kiimon.json, which
+		# evolves into keemon.json (Yarmon). Confirmed by ModderG (mod author).
+}
+
 # Checked and rejected: these look like matches (same/similar display name in
 # the lang file, or similar spelling) but are NOT the same digimon. Listed so
 # nobody re-adds them after seeing them in the suggestions output.
 #   'Cocomon'    ~ conomon.json     (lang wrongly says "Cocomon" - mod bug)
 #   'Pipimon'    ~ datirimon.json   (lang wrongly says "Pipimon" - mod bug)
-#   'Yarmon'     ~ keemon.json      (lang wrongly says "Yarmon" - mod bug;
-#                                     keemon.json is already correctly claimed
-#                                     by our own "Keemon" card)
 #   'ShoutmonX5' ~ shoutmonx3.json  (canonically distinct Shoutmon fusion
 #                                     forms, just a similar naming pattern -
 #                                     texture doesn't clearly match either)
@@ -183,6 +199,15 @@ def clean_card_name(raw_name: str) -> str:
 	# the LAST parenthetical is the credit, strip that one and stop. A variant
 	# tag paren earlier in the name (e.g. "Agumon (Black) (ModderG)") must stay.
 	return re.sub(r"\s*\([^()]*\)\s*$", "", raw_name)
+
+
+def extract_credit(raw_name: str) -> str | None:
+	# The credit is that same trailing parenthetical clean_card_name() strips -
+	# pull it back out so the roster can show who modeled each digimon. Cards
+	# with no trailing paren at all (rare, but seen on a few untiered-list
+	# entries) have no credit to show.
+	match = re.search(r"\(([^()]*)\)\s*$", raw_name)
+	return match.group(1).strip() if match else None
 
 
 def slugify(name: str) -> str:
@@ -221,10 +246,14 @@ def fetch_lang_display_map() -> dict:
 def resolve_slug(clean_name: str, tier_key: str, implemented: set) -> str | None:
 	"""Return the implemented slug for a card, or None if not in the mod.
 
-	Only two ways to match: the Trello name slugified directly, or a manual
+	Checked in order: a SLUG_OVERRIDES entry (a direct-match would grab the
+	wrong file), the Trello name slugified directly, or a manual
 	CONFIRMED_ALIASES override. Deliberately NOT automatic beyond that - see
 	suggest_slug_candidates() for why.
 	"""
+	if clean_name in SLUG_OVERRIDES:
+		override = SLUG_OVERRIDES[clean_name]
+		return override if override in implemented else None
 	direct = slugify(clean_name)
 	if direct in implemented:
 		return direct
@@ -281,19 +310,39 @@ def fetch_digimon_stats(slug: str, evolves_from_map: dict) -> dict:
 		if isinstance(i, int) and 0 <= i < len(XP_ITEMS):
 			item_slug, label = XP_ITEMS[i]
 			xp_drops.append(
-				{"label": label, "img": f"./src/assets/images/the_digimod/xp_items/{item_slug}.png"}
+				{
+					"label": label,
+					"img": f"./src/assets/images/the_digimod/xp_items/{item_slug}.png",
+					# Data items always get a td_item_<slug>.html page from sync_td_items.py.
+					"href": f"./td_item_{item_slug}.html",
+				}
 			)
 
 	evo_stage = data.get("evo_stage")
 	if isinstance(evo_stage, int) and 0 <= evo_stage < len(EVO_STAGE_LABELS):
 		evo_stage = EVO_STAGE_LABELS[evo_stage]
 
+	default_move = data.get("default_sp_move")
+
+	# DigimonJsonDataManager.applyJsonData() only calls setDiet() when the
+	# json actually has a "diet" key - otherwise the entity keeps the diet
+	# DigimonEntity's constructor assigns unconditionally, DietInit.REGULAR_DIET
+	# (confirmed in themodderg/The-Digimod source: DigimonEntity.java sets
+	# `this.diet = DietInit.REGULAR_DIET;`, and DietInit.getDiet()'s switch
+	# also falls to REGULAR_DIET for any unrecognized string). So a missing
+	# "diet" key is a real in-game "regular", not a data gap - reflect that
+	# instead of leaving the roster's Diet row blank for these entries.
+	diet = data.get("diet") or "regular"
+
 	return {
 		"entity_id": f"{MOD_ID}:{slug}",
 		"profession": data.get("profession"),
-		"diet": data.get("diet"),
+		"diet": diet,
 		"evo_stage": evo_stage,
-		"default_move": data.get("default_sp_move"),
+		"default_move": default_move,
+		# Every default move has a matching chip_<move>.html page from
+		# sync_td_items.py - it's a Special Attack Chip item id by convention.
+		"default_move_href": f"./td_item_chip_{default_move}.html" if default_move else None,
 		"xp_drops": xp_drops,
 		"evolves_into": sorted(evolutions.keys()),
 		"evolves_from": evolves_from_map.get(slug, []),
@@ -335,12 +384,18 @@ def main() -> int:
 				idx = len(js_entries)
 				lines.append(f'            <li data-idx="{idx}">{html.escape(card["clean_name"])}</li>')
 				js_entries.append(
-					{"name": card["clean_name"], "img": card["img_rel_path"], "stats": card["stats"]}
+					{
+						"name": card["clean_name"],
+						"img": card["img_rel_path"],
+						"stats": card["stats"],
+						"credit": card["credit"],
+					}
 				)
 		return lines
 
 	def process_card(card: dict, source_tier_key: str, source_tier_slug: str) -> dict | None:
 		clean_name = clean_card_name(card["name"])
+		credit = extract_credit(card["name"])
 		resolved_slug = resolve_slug(clean_name, source_tier_key, implemented)
 		slug = resolved_slug or slugify(clean_name)
 		in_mod = resolved_slug is not None
@@ -387,6 +442,7 @@ def main() -> int:
 			"img_rel_path": f"./src/assets/images/the_digimod/roster/{fname}",
 			"in_mod": in_mod,
 			"stats": fetch_digimon_stats(slug, evolves_from_map) if in_mod else None,
+			"credit": credit,
 		}
 
 	all_cards = []

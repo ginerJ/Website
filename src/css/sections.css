@@ -47,6 +47,7 @@ html {
 
 #section-mobs,
 #section-items,
+#section-blocks,
 #obtaining,
 #crafting,
 #tipped-darts,
@@ -1414,6 +1415,13 @@ footer {
   height: 4.5rem;
 }
 
+.smelting-flame img {
+  width: 60%;
+  height: 60%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
 .smithing-row {
   display: grid;
   grid-template-columns: repeat(3, 3rem);
@@ -1502,6 +1510,14 @@ footer {
   box-shadow:
     inset 2px 2px 0 rgba(255, 255, 255, 0.10),
     inset -2px -2px 0 rgba(0, 0, 0, 0.55);
+}
+
+.recipe-cell-filled a {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
 }
 
 .recipe-cell-filled img {
@@ -1681,28 +1697,41 @@ footer {
 }
 
 @media (min-width: 1280px) {
-  .mobs-overview {
+  .mobs-overview,
+  .items-overview,
+  .blocks-overview {
     align-items: stretch;
   }
-  .mobs-overview .item-toc {
+  .mobs-overview .item-toc,
+  .items-overview .item-toc,
+  .blocks-overview .item-toc {
     display: flex;
     flex-direction: column;
   }
   /* Scroll the card list in its own box (matching the sticky rotator's
      height) instead of the whole page, so hovering it and using the wheel
-     browses mobs without fighting page scroll. */
-  .mobs-overview .item-toc .lore-bullet-list {
+     browses the list without fighting page scroll. Same treatment for the
+     Items index (mod-content-list) as the Mobs roster (lore-bullet-list). */
+  .mobs-overview .item-toc .lore-bullet-list,
+  .items-overview .item-toc .mod-content-list,
+  .blocks-overview .item-toc .mod-content-list {
     max-height: calc(100vh - 8rem);
     overflow-y: auto;
     padding-right: 0.5rem;
   }
-  .mobs-overview .item-toc .lore-bullet-list::-webkit-scrollbar {
+  .mobs-overview .item-toc .lore-bullet-list::-webkit-scrollbar,
+  .items-overview .item-toc .mod-content-list::-webkit-scrollbar,
+  .blocks-overview .item-toc .mod-content-list::-webkit-scrollbar {
     width: 0.5rem;
   }
-  .mobs-overview .item-toc .lore-bullet-list::-webkit-scrollbar-track {
+  .mobs-overview .item-toc .lore-bullet-list::-webkit-scrollbar-track,
+  .items-overview .item-toc .mod-content-list::-webkit-scrollbar-track,
+  .blocks-overview .item-toc .mod-content-list::-webkit-scrollbar-track {
     background: var(--color-primary);
   }
-  .mobs-overview .item-toc .lore-bullet-list::-webkit-scrollbar-thumb {
+  .mobs-overview .item-toc .lore-bullet-list::-webkit-scrollbar-thumb,
+  .items-overview .item-toc .mod-content-list::-webkit-scrollbar-thumb,
+  .blocks-overview .item-toc .mod-content-list::-webkit-scrollbar-thumb {
     background: var(--color-secondary-selected);
   }
 }
@@ -1721,7 +1750,9 @@ footer {
 }
 
 @media (min-width: 1280px) {
-  .mobs-overview .items-rotator {
+  .mobs-overview .items-rotator,
+  .items-overview .items-rotator,
+  .blocks-overview .items-rotator {
     position: sticky;
     /* .top-section is a sticky header ~5.5rem tall (incl. margin) - clear it
        so the rotator's own title doesn't end up hidden behind it. */
@@ -1764,6 +1795,8 @@ footer {
 
 .mobs-overview .lore-bullet-list li[data-idx] {
   cursor: pointer;
+  font-size: clamp(1rem, 1.4vw, 1.15rem);
+  font-weight: 600;
   transition: color 0.15s ease, transform 0.15s ease;
 }
 
@@ -1774,6 +1807,19 @@ footer {
 
 .mobs-overview .items-rotator .items-rotator-image {
   background: #15101e;
+}
+
+.items-overview .mod-content-list li.category-label {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #ece7e0;
+  margin-top: 1.25rem;
+  border-bottom: 1px solid var(--color-secondary-selected);
+  padding-bottom: 0.35rem;
+}
+
+.items-overview .mod-content-list li.category-label:first-child {
+  margin-top: 0;
 }
 
 .easter-eggs-section {
