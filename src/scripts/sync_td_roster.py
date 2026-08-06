@@ -35,6 +35,21 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 TD_LORE_HTML = REPO_ROOT / "td_lore.html"
 THE_DIGIMOD_JS = REPO_ROOT / "src/scripts/js/texts/the_digimod.js"
 ROSTER_DIR = REPO_ROOT / "src/assets/images/the_digimod/roster"
+MODELER_PLACEHOLDER_IMG = "./src/assets/images/the_digimod/modelers/placeholder.png"
+
+# Trello credit strings that aren't a modeler name at all - either card
+# status labels the board uses when no author is set, or grouping markers.
+# Anything matching this set (case-insensitive) is dropped from the modelers
+# roster entirely instead of showing up as a fake contributor.
+NON_MODELER_CREDITS = {
+	"in mod",
+	"extras",
+	"done",
+}
+
+# Regex: any credit that starts with "done" (e.g. "DONE! - Added in 1.7") is
+# a status label, not a name. Checked in addition to NON_MODELER_CREDITS.
+NON_MODELER_CREDIT_PREFIXES = ("done!", "added in ")
 
 TRELLO_BOARD_URL = "https://trello.com/b/Z5gjWmkN/the-digimod-needed-models.json"
 GITHUB_API_URL = (
@@ -55,6 +70,14 @@ MOD_ID = "thedigimod"
 DIGIMON_CACHE_DIR = Path(__file__).resolve().parent / ".td_digimon_cache"
 LANG_CACHE_FILE = Path(__file__).resolve().parent / ".td_digimon_cache" / "_lang.json"
 
+# Optional local override: when set (via `--local [path]`), read digimon json
+# and the lang file straight from an unreleased local copy of the mod source
+# instead of hitting GitHub. Lets the roster reflect additions that aren't
+# pushed yet. Set in main() from argv; default local path is the standard
+# dev checkout under ~/raid/mods/digimods/digimod.
+LOCAL_MOD_ROOT: Path | None = None
+DEFAULT_LOCAL_MOD_ROOT = Path.home() / "raid/mods/digimods/digimod"
+
 # Which evo_stage indices are valid for a card filed under each Trello tier.
 # Trello collapses the game's "Perfect" and "Ultimate" stages into one list.
 TIER_STAGE_INDEXES = {
@@ -73,6 +96,18 @@ TIER_LISTS = [
 	("Ultimates In The Mod", "Ultimates", "ultimate"),
 ]
 TIER_SLUG_BY_KEY = {key: slug for key, _title, slug in TIER_LISTS}
+
+# Evo stage label to show for planned (not-yet-implemented) cards based on
+# which Trello tier list they came from. Trello merges Perfect + Ultimate
+# under one list, so we surface both in that case. The untiered extra list
+# has no tier info, so entries there don't get a stage label.
+TIER_STAGE_LABEL = {
+	"Babies I in The Mod": "Baby I",
+	"Babies II In The Mod": "Baby II",
+	"Rookies In The Mod": "Rookie",
+	"Champions In The Mod": "Champion",
+	"Ultimates In The Mod": "Perfect / Ultimate",
+}
 
 # Reverse of TIER_STAGE_INDEXES: which tier bucket a *matched* card from the
 # untiered extra list belongs under, based on its own json's evo_stage.
@@ -150,6 +185,21 @@ CONFIRMED_ALIASES: dict[str, str] = {
 	"AlturKabuterimon (Red)": "alturkabuterimon",  # lang: "AlturKabuterimon" (base
 		# file has no color suffix, unlike "alturkabuterimonblue" - confirmed by
 		# the actual entity texture being red/maroon, matching the card art)
+	"Algomon (BabyII)": "algomonbaby2",  # lang: "Algomon (Baby II)"
+	"Algomon (Child)": "algomonrookie",  # lang: "Algomon (Child)"
+	"Algomon (Adult)": "algomonchampion",  # lang: "Algomon (Adult)"
+	"Algomon (Perfect)": "algomonultimate",  # lang: "Algomon (Perfect)"
+	"Coredramon (Blue)": "coredramon",  # lang: "Coredramon (Blue)" - the mod's
+		# single Coredramon file is the blue variant (green is not implemented)
+	"Greymon (Blue)": "greymonvirus",  # lang: "Greymon (Blue)" - canonically
+		# the virus/blue Greymon are the same variant
+	"Pucchiemon (Green)": "greenpucchiemon",  # lang: "Pucchiemon (Green)"
+	"Guardromon (Gold)": "goldguardromon",  # lang: "Guardromon (Gold)"
+	"Shoutmon (King Ver.)": "kingshoutmon",  # lang: "Shoutmon (King Ver.)"
+	"Dorulumon": "dolurumon",  # lang: "Dorulumon" - romanisation typo in file slug
+	"Zassoumon": "weedmon",  # lang: "Zassoumon" - "weed" is the EN localisation
+	"Jyureimon": "cherrymon",  # lang: "Jyureimon" - JP name; EN is Cherrymon
+	"Cockatrimon": "kokatorimon",  # lang: "Cockatrimon" - romanisation of the JP file slug
 	"Pyocomon": "yokomon",  # confirmed by ModderG (mod author): yokomon.json is
 		# the digimon the community calls "Pyocomon" - "pyocomon.json" doesn't
 		# exist, and the "Yokomon" lang name is itself a mistake on the mod's
@@ -219,6 +269,12 @@ def download(url: str, dest: Path) -> None:
 
 
 def fetch_digimon_json(slug: str) -> dict:
+	if LOCAL_MOD_ROOT is not None:
+		# Local mode: read straight from the working copy, skip the cache
+		# entirely (cache holds stale GitHub content and local files are
+		# fast enough that caching them buys nothing).
+		path = LOCAL_MOD_ROOT / "src/main/resources/data/thedigimod/digimon" / f"{slug}.json"
+		return json.loads(path.read_text(encoding="utf-8"))
 	DIGIMON_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 	cache_file = DIGIMON_CACHE_DIR / f"{slug}.json"
 	if cache_file.exists():
@@ -232,15 +288,35 @@ def fetch_lang_display_map() -> dict:
 	# entity.thedigimod.<slug> -> in-game display name, straight from the
 	# mod's own translation file. Used to auto-resolve Trello cards whose
 	# name doesn't match the file slug (typos, unrelated internal slugs).
-	LANG_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
-	if LANG_CACHE_FILE.exists():
-		lang = json.loads(LANG_CACHE_FILE.read_text(encoding="utf-8"))
+	if LOCAL_MOD_ROOT is not None:
+		lang = json.loads(
+			(LOCAL_MOD_ROOT / "src/main/resources/assets/thedigimod/lang/en_us.json")
+			.read_text(encoding="utf-8")
+		)
 	else:
-		lang = fetch_json(LANG_URL)
-		LANG_CACHE_FILE.write_text(json.dumps(lang), encoding="utf-8")
+		LANG_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+		if LANG_CACHE_FILE.exists():
+			lang = json.loads(LANG_CACHE_FILE.read_text(encoding="utf-8"))
+		else:
+			lang = fetch_json(LANG_URL)
+			LANG_CACHE_FILE.write_text(json.dumps(lang), encoding="utf-8")
 
 	prefix = "entity.thedigimod."
 	return {k[len(prefix):]: v for k, v in lang.items() if k.startswith(prefix)}
+
+
+def list_implemented_slugs() -> set:
+	"""Return the set of implemented digimon slugs, from the local mod source
+	when `--local` is active, or from the GitHub contents API otherwise."""
+	if LOCAL_MOD_ROOT is not None:
+		digimon_dir = LOCAL_MOD_ROOT / "src/main/resources/data/thedigimod/digimon"
+		return {p.stem for p in digimon_dir.glob("*.json")}
+	entries = fetch_json(GITHUB_API_URL)
+	return {
+		e["name"].removesuffix(".json")
+		for e in entries
+		if e["type"] == "file" and e["name"].endswith(".json")
+	}
 
 
 def resolve_slug(clean_name: str, tier_key: str, implemented: set) -> str | None:
@@ -349,16 +425,106 @@ def fetch_digimon_stats(slug: str, evolves_from_map: dict) -> dict:
 	}
 
 
+def split_modeler_credit(credit: str | None) -> list[str]:
+	"""Split a Trello credit string like 'ModderG & Fapdos' into individual
+	modeler names, dropping status-label credits (see NON_MODELER_CREDITS).
+	Returns [] if the credit is empty, a pure status label, or resolves to
+	no real names."""
+	if not credit:
+		return []
+	# Trello credits use ' & ' as the collab separator; a handful of cards
+	# use ' and ' instead ("Jawoon and Tymander") - normalise so both split
+	# the same way and roll up under the same modeler entries.
+	normalised = re.sub(r"\s+and\s+", " & ", credit)
+	parts = [p.strip() for p in re.split(r"\s*&\s*", normalised) if p.strip()]
+	names = []
+	for name in parts:
+		lower = name.lower()
+		if lower in NON_MODELER_CREDITS:
+			continue
+		if any(lower.startswith(pref) for pref in NON_MODELER_CREDIT_PREFIXES):
+			continue
+		names.append(name)
+	return names
+
+
+def build_modelers_data(all_cards: list, js_entries: list) -> list[dict]:
+	"""Aggregate Trello credit strings into per-modeler contribution lists.
+
+	Each modeler entry surfaces two lists:
+	  - 'sole': digimon where they are the only credited modeler
+	  - 'collab': digimon where they share the credit with someone else
+
+	Names are folded case-insensitively (NoahRed3603 vs Noahred3603 collapse
+	to one entry) but the most common casing is kept as the display name.
+	Entries are sorted by total contribution count desc, then by name."""
+	# Map from lowercased name to {canon_name: str, casings: Counter, sole, collab}.
+	buckets: dict[str, dict] = {}
+	# Build a card-name -> js_entries idx map so the rotator can jump into
+	# the mob roster when a digimon is clicked inside a modeler's panel.
+	name_to_idx = {e["name"]: i for i, e in enumerate(js_entries)}
+
+	for card in all_cards:
+		modelers = split_modeler_credit(card.get("credit"))
+		if not modelers:
+			continue
+		idx = name_to_idx.get(card["clean_name"])
+		is_collab = len(modelers) > 1
+		for name in modelers:
+			key = name.lower()
+			bucket = buckets.setdefault(
+				key,
+				{"canon": name, "casings": {}, "sole": [], "collab": []},
+			)
+			bucket["casings"][name] = bucket["casings"].get(name, 0) + 1
+			entry = {"name": card["clean_name"]}
+			if idx is not None:
+				entry["idx"] = idx
+			if is_collab:
+				entry["partners"] = [n for n in modelers if n != name]
+				bucket["collab"].append(entry)
+			else:
+				bucket["sole"].append(entry)
+
+	# Pick the most-used casing per modeler as the display name so we don't
+	# arbitrarily pick whichever one happened to appear first.
+	for bucket in buckets.values():
+		bucket["canon"] = max(bucket["casings"].items(), key=lambda kv: kv[1])[0]
+
+	modelers = []
+	for bucket in buckets.values():
+		modelers.append(
+			{
+				"name": bucket["canon"],
+				"img": MODELER_PLACEHOLDER_IMG,
+				"sole": sorted(bucket["sole"], key=lambda e: e["name"].lower()),
+				"collab": sorted(bucket["collab"], key=lambda e: e["name"].lower()),
+			}
+		)
+
+	modelers.sort(key=lambda m: (-(len(m["sole"]) + len(m["collab"])), m["name"].lower()))
+	return modelers
+
+
 def main() -> int:
+	global LOCAL_MOD_ROOT
+	argv = sys.argv[1:]
+	if "--local" in argv:
+		i = argv.index("--local")
+		# Allow either `--local` (use default checkout) or `--local <path>`.
+		if i + 1 < len(argv) and not argv[i + 1].startswith("--"):
+			LOCAL_MOD_ROOT = Path(argv[i + 1]).expanduser().resolve()
+		else:
+			LOCAL_MOD_ROOT = DEFAULT_LOCAL_MOD_ROOT
+		if not (LOCAL_MOD_ROOT / "src/main/resources/data/thedigimod/digimon").is_dir():
+			print(f"ERROR: --local path has no digimon dir: {LOCAL_MOD_ROOT}", file=sys.stderr)
+			return 2
+		print(f"Local mode: reading mod data from {LOCAL_MOD_ROOT}", file=sys.stderr)
+
 	board = fetch_json(TRELLO_BOARD_URL)
 	lists_by_name = {l["name"]: l["id"] for l in board["lists"]}
 
-	implemented_entries = fetch_json(GITHUB_API_URL)
-	implemented = {
-		e["name"].removesuffix(".json")
-		for e in implemented_entries
-		if e["type"] == "file" and e["name"].endswith(".json")
-	}
+	implemented = list_implemented_slugs()
 	implemented |= set(CONFIRMED_ALIASES.values())
 	lang_display = fetch_lang_display_map()
 
@@ -383,14 +549,18 @@ def main() -> int:
 			for card in tier_cards:
 				idx = len(js_entries)
 				lines.append(f'            <li data-idx="{idx}">{html.escape(card["clean_name"])}</li>')
-				js_entries.append(
-					{
-						"name": card["clean_name"],
-						"img": card["img_rel_path"],
-						"stats": card["stats"],
-						"credit": card["credit"],
-					}
-				)
+				entry = {
+					"name": card["clean_name"],
+					"img": card["img_rel_path"],
+					"stats": card["stats"],
+					"credit": card["credit"],
+				}
+				# Planned (not-in-mod) cards have no stats block, but for tiered
+				# lists we still know their evo stage from which list they came
+				# from - surface it so the sidebar isn't just a credit line.
+				if not card["in_mod"] and card.get("planned_stage"):
+					entry["evo_stage"] = card["planned_stage"]
+				js_entries.append(entry)
 		return lines
 
 	def process_card(card: dict, source_tier_key: str, source_tier_slug: str) -> dict | None:
@@ -443,6 +613,7 @@ def main() -> int:
 			"in_mod": in_mod,
 			"stats": fetch_digimon_stats(slug, evolves_from_map) if in_mod else None,
 			"credit": credit,
+			"planned_stage": TIER_STAGE_LABEL.get(source_tier_key) if not in_mod else None,
 		}
 
 	all_cards = []
@@ -497,6 +668,37 @@ def main() -> int:
 	entries_lines.append("        // TD-ROSTER:ENTRIES:END")
 	entries_block = "\n".join(entries_lines)
 
+	modelers = build_modelers_data(all_cards, js_entries)
+
+	# Section list: one clickable <li> per modeler, under a single group
+	# label. Same class hooks the mobs list uses so the .modelers-overview
+	# selectors in sections.css can piggyback on the existing mob styles.
+	modelers_list_lines = [
+		'            <li id="section-modelers-list" class="mob-group-label">Modelers</li>'
+	]
+	for i, m in enumerate(modelers):
+		total = len(m["sole"]) + len(m["collab"])
+		modelers_list_lines.append(
+			f'            <li data-modeler-idx="{i}">'
+			f'{html.escape(m["name"])} <span class="modeler-count">({total})</span>'
+			f'</li>'
+		)
+	modelers_list_block = (
+		"<!-- TD-MODELERS:LIST:START (generated by src/scripts/sync_td_roster.py, do not hand-edit) -->\n"
+		+ "\n".join(modelers_list_lines)
+		+ "\n            <!-- TD-MODELERS:LIST:END -->"
+	)
+
+	modelers_entries_lines = [
+		"// TD-MODELERS:ENTRIES:START (generated by src/scripts/sync_td_roster.py, do not hand-edit)"
+	]
+	modelers_entries_lines += [
+		"        " + json.dumps(m) + ("," if i < len(modelers) - 1 else "")
+		for i, m in enumerate(modelers)
+	]
+	modelers_entries_lines.append("        // TD-MODELERS:ENTRIES:END")
+	modelers_entries_block = "\n".join(modelers_entries_lines)
+
 	content = TD_LORE_HTML.read_text(encoding="utf-8")
 
 	content = re.sub(
@@ -508,6 +710,18 @@ def main() -> int:
 	content = re.sub(
 		r"// TD-ROSTER:ENTRIES:START.*?// TD-ROSTER:ENTRIES:END",
 		lambda _: entries_block,
+		content,
+		flags=re.DOTALL,
+	)
+	content = re.sub(
+		r"<!-- TD-MODELERS:LIST:START.*?<!-- TD-MODELERS:LIST:END -->",
+		lambda _: modelers_list_block,
+		content,
+		flags=re.DOTALL,
+	)
+	content = re.sub(
+		r"// TD-MODELERS:ENTRIES:START.*?// TD-MODELERS:ENTRIES:END",
+		lambda _: modelers_entries_block,
 		content,
 		flags=re.DOTALL,
 	)

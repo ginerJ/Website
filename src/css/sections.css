@@ -1793,20 +1793,135 @@ footer {
   display: none;
 }
 
-.mobs-overview .lore-bullet-list li[data-idx] {
+.mobs-overview .lore-bullet-list li[data-idx],
+.mobs-overview .lore-bullet-list li[data-modeler-idx] {
   cursor: pointer;
   font-size: clamp(1rem, 1.4vw, 1.15rem);
   font-weight: 600;
   transition: color 0.15s ease, transform 0.15s ease;
 }
 
-.mobs-overview .lore-bullet-list li[data-idx]:hover {
+.mobs-overview .lore-bullet-list li[data-idx]:hover,
+.mobs-overview .lore-bullet-list li[data-modeler-idx]:hover {
   color: #ece7e0;
   transform: translateX(2px);
 }
 
 .mobs-overview .items-rotator .items-rotator-image {
   background: #15101e;
+}
+
+/* The Modelers section reuses the same two-column mobs-overview layout
+   (list on the left, sticky rotator on the right) - the HTML sets both
+   classes on the wrapper so no selector cloning is needed. The extra
+   pieces here are the trailing (N) tag on each list item plus the
+   rotator's tables for solo/collab contributions. */
+.modelers-overview .lore-bullet-list li .modeler-count {
+  color: var(--color-secondary-selected);
+  font-weight: 500;
+  font-size: 0.85em;
+  margin-left: 0.35rem;
+}
+
+.modelers-rotator .items-rotator-image {
+  background: #15101e;
+}
+
+.modeler-stats {
+  display: block;
+  margin: 0;
+}
+
+.modeler-section {
+  margin-top: 0.9rem;
+}
+
+.modeler-section:first-child {
+  margin-top: 0;
+}
+
+.modeler-section-title {
+  color: #ece7e0;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  padding: 0.3rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.modeler-section:first-child .modeler-section-title {
+  border-top: 0;
+}
+
+.modeler-section-count {
+  color: var(--color-secondary-selected);
+  font-weight: 500;
+}
+
+/* Fixed layout so the name column stays a stable width across rows and
+   each entry gets one line - the font clamps down on narrow rotator
+   widths so long names + partner strings keep fitting. */
+.modeler-mob-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: clamp(0.7rem, 0.85vw, 0.88rem);
+  margin-top: 0.25rem;
+}
+
+.modeler-mob-table td {
+  padding: 0.2rem 0.4rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.modeler-mob-table td.name {
+  color: var(--color-text);
+  font-weight: 600;
+  width: 45%;
+}
+
+.modeler-mob-table td.partners {
+  color: var(--color-secondary-selected);
+  font-size: 0.9em;
+  font-style: italic;
+}
+
+.modeler-mob-table tr:nth-child(even) {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.modeler-mob-table .modeler-mob-jump {
+  cursor: pointer;
+  color: var(--color-text);
+  border-bottom: 1px dashed var(--color-secondary-selected);
+  transition: color 0.15s ease;
+}
+
+.modeler-mob-table .modeler-mob-jump:hover {
+  color: var(--color-special);
+  border-bottom-color: var(--color-special);
+}
+
+.modeler-empty {
+  margin: 0.35rem 0 0;
+  color: var(--color-secondary-selected);
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
+.modeler-total {
+  margin-top: 1rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--color-special);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .items-overview .mod-content-list li.category-label {
