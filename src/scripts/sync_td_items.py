@@ -422,9 +422,11 @@ def fetch_recipes() -> dict[str, dict]:
 	"""result item id (no namespace) -> recipe dict, thedigimod items only."""
 	listing = fetch_json(RECIPES_API_URL) or []
 	by_result: dict[str, dict] = {}
+	seen_names: set[str] = set()
 	for entry in listing:
 		if entry["type"] != "file" or not entry["name"].endswith(".json"):
 			continue
+		seen_names.add(entry["name"])
 		cache_file = RECIPE_CACHE_DIR / entry["name"]
 		RECIPE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 		if cache_file.exists():
@@ -436,6 +438,19 @@ def fetch_recipes() -> dict[str, dict]:
 		result_item = result if isinstance(result, str) else (result or {}).get("item", "")
 		if result_item.startswith(f"{MOD_ID}:"):
 			by_result[result_item.split(":", 1)[1]] = data
+	# Overlay recipes from the local mod source - new/updated recipes not yet
+	# on GitHub main still land in the wiki. Locals win over remote.
+	local_recipes_dir = LOCAL_MOD_ROOT / "src/main/resources/data/thedigimod/recipes"
+	if local_recipes_dir.is_dir():
+		for f in local_recipes_dir.glob("*.json"):
+			try:
+				data = json.loads(f.read_text(encoding="utf-8"))
+			except json.JSONDecodeError:
+				continue
+			result = data.get("result")
+			result_item = result if isinstance(result, str) else (result or {}).get("item", "")
+			if result_item.startswith(f"{MOD_ID}:"):
+				by_result[result_item.split(":", 1)[1]] = data
 	return by_result
 
 
