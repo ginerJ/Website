@@ -98,18 +98,6 @@ document.getElementById("evo-digitron").innerHTML = `
 `;
 
 
-document.getElementById("faq-digivices").innerHTML = `
-  <p class="font-bold" style="font-size: 2vh;">
-    <span class="text-special">DIGIVICES</span>: You will eventually get or craft a <span class="text-orange">Digivice</span>, these are a group of 
-    items which share special properties. You can use them to open a <span class="text-orange">GUI</span>
-     when interacting with a digimon, menu which will
-    allow you to check out your digimon's <span class="text-orange">stats</span>, 
-    <span class="text-orange">evolution tree</span> and even <span class="text-orange">command</span> them to perform certain actions. Don't 
-    be fooled by their different shapes and colors, the different presentations of Digivices don't have additional features to one another.
-  </p>
-`;
-
-
 document.getElementById("faq-commands").innerHTML = `
   <p class="font-bold" style="font-size: 2vh;">
     <span class="text-special">COMMANDS</span>: When interacting with a partner digimon, the <span class="text-orange">command</span> 
@@ -172,12 +160,4 @@ document.getElementById("faq-advanced-goods").innerHTML = `
   </p>
 `;
 
-
-document.getElementById("faq-bytes").innerHTML = `
-  <p class="font-bold" style="font-size: 2vh;">
-    <span class="text-special">STAT BYTES</span>: <span class="text-orange">Stats</span> can also get <span class="text-orange">raised</span>
-     by the consuption of <span class="text-orange">bytes</span>. <span class="text-orange">Stat Bytes</span> have a
-     small chance of being <span class="text-orange">dropped</span> by wild digimon (except babies).
-  </p>
-`;
 

@@ -1794,6 +1794,8 @@ footer {
 }
 
 .mobs-overview .lore-bullet-list li[data-idx],
+.mobs-overview .lore-bullet-list li[data-tg-idx],
+.mobs-overview .lore-bullet-list li[data-cfg-idx],
 .mobs-overview .lore-bullet-list li[data-modeler-idx] {
   cursor: pointer;
   font-size: clamp(1rem, 1.4vw, 1.15rem);
@@ -1802,9 +1804,65 @@ footer {
 }
 
 .mobs-overview .lore-bullet-list li[data-idx]:hover,
+.mobs-overview .lore-bullet-list li[data-tg-idx]:hover,
+.mobs-overview .lore-bullet-list li[data-cfg-idx]:hover,
 .mobs-overview .lore-bullet-list li[data-modeler-idx]:hover {
   color: #ece7e0;
   transform: translateX(2px);
+}
+
+.cfg-rotator {
+  justify-content: flex-start;
+}
+
+.cfg-stats {
+  display: block;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.cfg-stats dt {
+  font-weight: 700;
+  color: var(--color-special);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.78rem;
+  margin-top: 0.7rem;
+}
+
+.cfg-stats dt:first-of-type {
+  margin-top: 0;
+}
+
+.cfg-stats dd {
+  margin: 0.2rem 0 0;
+  color: var(--color-text);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.cfg-stats code {
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 0.78rem;
+  color: var(--color-special);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.1rem 0.35rem;
+  box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.55);
+  white-space: normal;
+  word-break: break-all;
+  display: inline-block;
+  max-width: 100%;
+}
+
+#cfg-rotator-desc p {
+  margin: 0 0 0.6rem;
+  line-height: 1.55;
+  color: var(--color-text);
+}
+
+#cfg-rotator-desc p:last-child {
+  margin-bottom: 0;
 }
 
 .mobs-overview .items-rotator .items-rotator-image {
@@ -1859,6 +1917,30 @@ footer {
   font-weight: 500;
 }
 
+/* Scroll the two contribution tables independently so the rotator's
+   total height stays bounded (the sole list can hit 130+ rows for the
+   top contributors and would otherwise dwarf the modelers list on the
+   left). Kept small enough that both tables + the totals row fit
+   inside one desktop viewport. */
+.modeler-mob-scroll {
+  max-height: 28vh;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.modeler-mob-scroll::-webkit-scrollbar {
+  width: 0.4rem;
+}
+
+.modeler-mob-scroll::-webkit-scrollbar-track {
+  background: var(--color-primary);
+}
+
+.modeler-mob-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-secondary-selected);
+}
+
 /* Fixed layout so the name column stays a stable width across rows and
    each entry gets one line - the font clamps down on narrow rotator
    widths so long names + partner strings keep fitting. */
@@ -1867,7 +1949,6 @@ footer {
   border-collapse: collapse;
   table-layout: fixed;
   font-size: clamp(0.7rem, 0.85vw, 0.88rem);
-  margin-top: 0.25rem;
 }
 
 .modeler-mob-table td {
@@ -1913,6 +1994,28 @@ footer {
   font-size: 0.85rem;
 }
 
+.modeler-contact-list {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+  color: var(--color-secondary);
+}
+
+.modeler-contact-list li {
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.modeler-contact-label {
+  color: var(--color-secondary-selected);
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
+
 .modeler-total {
   margin-top: 1rem;
   padding-top: 0.6rem;
@@ -1922,6 +2025,213 @@ footer {
   font-size: 0.85rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+/* --- Modeler charts (Digimod: "By the Numbers") ---------------------- */
+.modeler-charts-section {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-secondary-selected);
+}
+.modeler-charts-heading {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+.modeler-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+@media (max-width: 900px) {
+  .modeler-charts-grid { grid-template-columns: 1fr; }
+}
+.modeler-chart {
+  margin: 0;
+  padding: 0.9rem 1rem 1rem;
+  background-color: var(--color-primary);
+  border: 1px solid var(--color-secondary-selected);
+  border-radius: 6px;
+  min-width: 0;
+}
+.modeler-chart-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: 0.02em;
+  margin: 0 0 0.5rem;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.modeler-chart-sub {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-secondary-selected);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.modeler-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.9rem;
+  font-size: 0.72rem;
+  color: var(--color-secondary-selected);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.55rem;
+}
+.legend-swatch {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 2px;
+  margin-right: 0.3rem;
+  vertical-align: -1px;
+}
+.legend-swatch--in-mod { background-color: var(--color-td); }
+.legend-swatch--planned { background-color: var(--color-orange); }
+.modeler-chart-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+}
+.modeler-chart-body--scroll {
+  max-height: 18rem;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+}
+.modeler-chart-body--scroll::-webkit-scrollbar { width: 0.4rem; }
+.modeler-chart-body--scroll::-webkit-scrollbar-track { background: var(--color-primary); }
+.modeler-chart-body--scroll::-webkit-scrollbar-thumb {
+  background: var(--color-secondary-selected);
+  border-radius: 2px;
+}
+.modeler-chart-body--vertical {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: space-around;
+  gap: 0.5rem;
+  height: 14rem;
+  padding-top: 0.4rem;
+}
+.modeler-vbar-col {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.modeler-vbar-value {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.modeler-vbar-track {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 2.4rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background-color: var(--color-secondary);
+  border-radius: 3px 3px 0 0;
+  overflow: hidden;
+}
+.modeler-vbar-bar {
+  width: 100%;
+  background-color: var(--color-td);
+  border-radius: 3px 3px 0 0;
+  transition: filter 0.15s ease;
+}
+.modeler-vbar-bar:hover { filter: brightness(1.15); }
+.modeler-vbar-label {
+  font-size: 0.68rem;
+  color: var(--color-secondary-selected);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+  line-height: 1.15;
+  /* Fixed height so a 2-line label ("Perfect / Ultimate") doesn't compress
+     its own column's track and break the shared baseline across bars. */
+  height: 2.4em;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+.modeler-chart-row {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 10rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 1.5rem;
+}
+.modeler-chart-label {
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+.modeler-chart-label--team {
+  white-space: normal;
+  line-height: 1.15;
+  font-size: 0.75rem;
+}
+.modeler-chart-track {
+  display: flex;
+  align-items: stretch;
+  background-color: var(--color-secondary);
+  border-radius: 3px;
+  height: 0.85rem;
+  overflow: hidden;
+  gap: 2px; /* dataviz: 2px surface gap between stacked segments */
+}
+.modeler-chart-bar {
+  height: 100%;
+  min-width: 2px;
+  border-radius: 3px;
+  transition: filter 0.15s ease;
+}
+.modeler-chart-bar:hover { filter: brightness(1.15); }
+.modeler-chart-bar--solid { background-color: var(--color-td); }
+.modeler-chart-bar--in-mod { background-color: var(--color-td); }
+.modeler-chart-bar--planned { background-color: var(--color-orange); }
+/* Podium palette: gold / silver / bronze for the TOP-3 labels of the
+   horizontal-bar charts (Top Contributors, Most Solo, Top Collaborators,
+   Friendship Top). Bars stay teal for magnitude; the podium accent lives on
+   the modeler's name so the ranking reads without breaking the single-hue
+   comparison. */
+.modeler-chart-label--gold   { color: #f5c343; font-weight: 700; }
+.modeler-chart-label--silver { color: #c9ced4; font-weight: 700; }
+.modeler-chart-label--bronze { color: #cd7f32; font-weight: 700; }
+.modeler-chart-value {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-align: right;
+  min-width: 2.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.1;
+}
+.modeler-chart-value-num { color: var(--color-text); }
+.modeler-chart-value-sub {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--color-secondary-selected);
+  letter-spacing: 0.03em;
 }
 
 .items-overview .mod-content-list li.category-label {
@@ -1935,6 +2245,21 @@ footer {
 
 .items-overview .mod-content-list li.category-label:first-child {
   margin-top: 0;
+}
+
+.mod-content-link .mod-content-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.mod-content-link .mod-content-meta {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-text);
+  opacity: 0.65;
+  margin-top: 0.15rem;
 }
 
 .easter-eggs-section {

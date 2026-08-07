@@ -35,7 +35,18 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 TD_LORE_HTML = REPO_ROOT / "td_lore.html"
 THE_DIGIMOD_JS = REPO_ROOT / "src/scripts/js/texts/the_digimod.js"
 ROSTER_DIR = REPO_ROOT / "src/assets/images/the_digimod/roster"
+MODELERS_IMG_DIR = REPO_ROOT / "src/assets/images/the_digimod/modelers"
 MODELER_PLACEHOLDER_IMG = "./src/assets/images/the_digimod/modelers/placeholder.png"
+
+
+def modeler_image_for(name: str) -> str:
+	"""Return the wiki path for a modeler avatar, falling back to the shared
+	placeholder. Any file matching `<slug>.png` under the modelers dir is used,
+	where slug lowercases the name and strips non-alphanumeric chars."""
+	slug = re.sub(r"[^a-z0-9]+", "", name.lower())
+	if slug and (MODELERS_IMG_DIR / f"{slug}.png").is_file():
+		return f"./src/assets/images/the_digimod/modelers/{slug}.png"
+	return MODELER_PLACEHOLDER_IMG
 
 # Trello credit strings that aren't a modeler name at all - either card
 # status labels the board uses when no author is set, or grouping markers.
@@ -458,7 +469,34 @@ def build_modelers_data(all_cards: list, js_entries: list) -> list[dict]:
 	Names are folded case-insensitively (NoahRed3603 vs Noahred3603 collapse
 	to one entry) but the most common casing is kept as the display name.
 	Entries are sorted by total contribution count desc, then by name."""
-	# Map from lowercased name to {canon_name: str, casings: Counter, sole, collab}.
+	# Map from normalized name to {canon_name: str, casings: Counter, sole, collab}.
+	# Normalization strips whitespace and underscores in addition to case-folding,
+	# so `Megadrive_Menace`, `MegadriveMenace`, and `Megadrive Menace` all collapse
+	# to one modeler. On top of that, MODELER_ALIASES handles typos that the
+	# whitespace/case rules can't catch (missing letter, digit swap, etc.).
+	# Keys and values must both be in normalized form (lowercase, no spaces/underscores).
+	MODELER_ALIASES = {
+		"moddeg": "modderg",              # missing 'r' in ModdeG
+		"noadred3603": "noahred3603",     # 'd' typo for 'h' in NoadRed3603
+		"tennythomas1": "tennythomas",    # stray trailing '1'
+		"vampirestartfish": "vampirestarfish",  # extra 't'
+		"kronoschaos979": "kronoschaos",  # trailing '979' variant
+		"majorgigimon": "majorsirius",    # same person, alt handle
+		"gwen": "thetwizzler",            # Gwen is a made-up placeholder for The Twizzler
+		"tisthehuman": "kan",             # "tis the human" is Kan's alt handle
+	}
+
+	# Display-name overrides for buckets whose collapsed key doesn't match any
+	# name that appears in the Trello cards (or when we want to force a specific
+	# casing/handle). Keyed by the normalized bucket key.
+	MODELER_DISPLAY_OVERRIDES = {
+		"thetwizzler": "The Twizzler",
+	}
+
+	def modeler_key(name: str) -> str:
+		k = re.sub(r"[\s_]+", "", name).lower()
+		return MODELER_ALIASES.get(k, k)
+
 	buckets: dict[str, dict] = {}
 	# Build a card-name -> js_entries idx map so the rotator can jump into
 	# the mob roster when a digimon is clicked inside a modeler's panel.
@@ -470,8 +508,15 @@ def build_modelers_data(all_cards: list, js_entries: list) -> list[dict]:
 			continue
 		idx = name_to_idx.get(card["clean_name"])
 		is_collab = len(modelers) > 1
+		# Deduplicate collaborators that only differ in whitespace/underscore/case
+		# on the same card so partners lists don't double up the same person.
+		seen_keys: dict[str, str] = {}
 		for name in modelers:
-			key = name.lower()
+			seen_keys.setdefault(modeler_key(name), name)
+		unique_modelers = list(seen_keys.values())
+		is_collab = len(unique_modelers) > 1
+		for name in modelers:
+			key = modeler_key(name)
 			bucket = buckets.setdefault(
 				key,
 				{"canon": name, "casings": {}, "sole": [], "collab": []},
@@ -481,22 +526,39 @@ def build_modelers_data(all_cards: list, js_entries: list) -> list[dict]:
 			if idx is not None:
 				entry["idx"] = idx
 			if is_collab:
-				entry["partners"] = [n for n in modelers if n != name]
+				# Store partner keys for now; resolve to canonical display names
+				# in a second pass once every bucket's canon is known.
+				entry["_partner_keys"] = [
+					modeler_key(n) for n in unique_modelers if modeler_key(n) != key
+				]
 				bucket["collab"].append(entry)
 			else:
 				bucket["sole"].append(entry)
 
 	# Pick the most-used casing per modeler as the display name so we don't
-	# arbitrarily pick whichever one happened to appear first.
+	# arbitrarily pick whichever one happened to appear first. Then apply
+	# MODELER_DISPLAY_OVERRIDES to force a specific name for buckets where the
+	# aliased identity has a different display name than any Trello card uses.
+	for key, bucket in buckets.items():
+		if key in MODELER_DISPLAY_OVERRIDES:
+			bucket["canon"] = MODELER_DISPLAY_OVERRIDES[key]
+		else:
+			bucket["canon"] = max(bucket["casings"].items(), key=lambda kv: kv[1])[0]
+
+	# Resolve partner keys to canonical display names now that every bucket
+	# has its canon assigned.
+	key_to_canon = {k: b["canon"] for k, b in buckets.items()}
 	for bucket in buckets.values():
-		bucket["canon"] = max(bucket["casings"].items(), key=lambda kv: kv[1])[0]
+		for entry in bucket["collab"]:
+			partner_keys = entry.pop("_partner_keys", [])
+			entry["partners"] = [key_to_canon.get(k, k) for k in partner_keys]
 
 	modelers = []
 	for bucket in buckets.values():
 		modelers.append(
 			{
 				"name": bucket["canon"],
-				"img": MODELER_PLACEHOLDER_IMG,
+				"img": modeler_image_for(bucket["canon"]),
 				"sole": sorted(bucket["sole"], key=lambda e: e["name"].lower()),
 				"collab": sorted(bucket["collab"], key=lambda e: e["name"].lower()),
 			}
@@ -504,6 +566,107 @@ def build_modelers_data(all_cards: list, js_entries: list) -> list[dict]:
 
 	modelers.sort(key=lambda m: (-(len(m["sole"]) + len(m["collab"])), m["name"].lower()))
 	return modelers
+
+
+def build_modeler_charts_data(all_cards: list, modelers: list) -> dict:
+	"""Aggregate counts for the four charts under the modelers list:
+
+	- stageCounts: digimon per evolution stage, split into "in mod" vs
+	  "planned only" so the roster's progress is visible at a glance.
+	- topContributors: modelers ranked by total contributions (solo + collab).
+	- topSolo: modelers ranked by solo models only.
+	- topTeams: multi-modeler teams (sorted signature) ranked by how many
+	  cards they collaborated on together.
+	"""
+	# Stage chart: only in-mod cards are counted, because the "modeled but
+	# not implemented" cards all live in Trello's untiered extra list and
+	# don't carry stage info. Perfect and Ultimate get merged into a single
+	# row because the game treats them as one late-game tier (and Trello's
+	# Ultimates list holds both).
+	stage_bucket_order = ["Baby I", "Baby II", "Rookie", "Champion", "Perfect / Ultimate"]
+	stage_alias = {
+		"Baby I": "Baby I",
+		"Baby II": "Baby II",
+		"Rookie": "Rookie",
+		"Champion": "Champion",
+		"Perfect": "Perfect / Ultimate",
+		"Ultimate": "Perfect / Ultimate",
+	}
+	stage_counts = {label: 0 for label in stage_bucket_order}
+	for card in all_cards:
+		if not card["in_mod"]:
+			continue
+		stage = (card.get("stats") or {}).get("evo_stage")
+		bucket = stage_alias.get(stage)
+		if bucket:
+			stage_counts[bucket] += 1
+	stage_chart = [
+		{"label": label, "count": stage_counts[label]}
+		for label in stage_bucket_order
+	]
+
+	# Modeler ranking — already sorted by total desc inside build_modelers_data.
+	# No truncation: the chart body scrolls and shows every modeler.
+	top_contrib = [
+		{"name": m["name"], "count": len(m["sole"]) + len(m["collab"])}
+		for m in modelers
+	]
+	top_solo = sorted(
+		[{"name": m["name"], "count": len(m["sole"])} for m in modelers],
+		key=lambda r: (-r["count"], r["name"].lower()),
+	)
+	top_solo = [r for r in top_solo if r["count"] > 0]
+
+	top_collab = sorted(
+		[{"name": m["name"], "count": len(m["collab"])} for m in modelers],
+		key=lambda r: (-r["count"], r["name"].lower()),
+	)
+	top_collab = [r for r in top_collab if r["count"] > 0]
+
+	# Histogram of solo-model counts across modelers. Log-ish bins so the
+	# long tail (100+) doesn't get lost next to the "made 1-2 things" crowd.
+	solo_bins = [
+		("1-2", 1, 2),
+		("3-5", 3, 5),
+		("6-10", 6, 10),
+		("11-20", 11, 20),
+		("21-50", 21, 50),
+		("51-100", 51, 100),
+		("100+", 101, 10**9),
+	]
+	solo_histogram = []
+	for label, lo, hi in solo_bins:
+		n = sum(1 for m in modelers if lo <= len(m["sole"]) <= hi)
+		solo_histogram.append({"label": label, "count": n})
+
+	# Teams: for every collab entry, form a sorted tuple of (canon modeler +
+	# canon partners), tally how many distinct cards share the same team.
+	# A single card only counts once no matter how many modelers report it,
+	# so we key by (team, card_name) and then dedupe.
+	team_cards: dict[tuple, set] = {}
+	for m in modelers:
+		for entry in m["collab"]:
+			team = tuple(sorted(set([m["name"]] + list(entry.get("partners", [])))))
+			if len(team) < 2:
+				continue
+			team_cards.setdefault(team, set()).add(entry["name"])
+	teams = [
+		{"members": list(team), "count": len(cards)}
+		for team, cards in team_cards.items()
+	]
+	teams.sort(key=lambda r: (-r["count"], ", ".join(r["members"]).lower()))
+	# Drop the long tail of one-off teams — a team that only ever teamed up
+	# once isn't a "recurring team," and would flood the chart otherwise.
+	top_teams = [t for t in teams if t["count"] > 1]
+
+	return {
+		"stageCounts": stage_chart,
+		"topContributors": top_contrib,
+		"topSolo": top_solo,
+		"topCollaborators": top_collab,
+		"topTeams": top_teams,
+		"soloHistogram": solo_histogram,
+	}
 
 
 def main() -> int:
@@ -669,6 +832,7 @@ def main() -> int:
 	entries_block = "\n".join(entries_lines)
 
 	modelers = build_modelers_data(all_cards, js_entries)
+	charts_data = build_modeler_charts_data(all_cards, modelers)
 
 	# Section list: one clickable <li> per modeler, under a single group
 	# label. Same class hooks the mobs list uses so the .modelers-overview
@@ -699,6 +863,12 @@ def main() -> int:
 	modelers_entries_lines.append("        // TD-MODELERS:ENTRIES:END")
 	modelers_entries_block = "\n".join(modelers_entries_lines)
 
+	charts_block = (
+		"// TD-MODELER-CHARTS:DATA:START (generated by src/scripts/sync_td_roster.py, do not hand-edit)\n"
+		"      var MODELER_CHART_DATA = " + json.dumps(charts_data) + ";\n"
+		"      // TD-MODELER-CHARTS:DATA:END"
+	)
+
 	content = TD_LORE_HTML.read_text(encoding="utf-8")
 
 	content = re.sub(
@@ -722,6 +892,12 @@ def main() -> int:
 	content = re.sub(
 		r"// TD-MODELERS:ENTRIES:START.*?// TD-MODELERS:ENTRIES:END",
 		lambda _: modelers_entries_block,
+		content,
+		flags=re.DOTALL,
+	)
+	content = re.sub(
+		r"// TD-MODELER-CHARTS:DATA:START.*?// TD-MODELER-CHARTS:DATA:END",
+		lambda _: charts_block,
 		content,
 		flags=re.DOTALL,
 	)

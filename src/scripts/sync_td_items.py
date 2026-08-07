@@ -77,7 +77,7 @@ DIGIVICE_IDS = {
 DRIVE_IDS = {"gbattack", "gbdefence", "gbspattack", "gbspdefence", "health_drives", "battles_chip"}
 FOOD_IDS = {
 	"digi_cake", "digi_meat", "digi_meat_big", "digi_meat_rotten", "digi_ribs",
-	"digi_sushi", "poop", "poop_data", "gold_poop", "guilmon_bread",
+	"digi_sushi", "poop", "gold_poop", "guilmon_bread",
 }
 # update_item IS a real TDItems.java training good (SpawnGoodItem -> InitGoods.UPDATE_GOOD,
 # stat "health") - not to be confused with health_drives (TDItemsAdmin.java, MAX_MEGA debug
@@ -88,6 +88,37 @@ TRAINING_IDS = {
 	"lira_good", "m2_disk_item", "old_pc", "red_freezer",
 	"shield_item", "table_item", "target_item", "training_bag", "training_rock",
 	"wind_vane", "update_item",
+}
+
+# Training-good items that are NOT SpawnGoodItems - they don't place a
+# trainable entity when used. training_bag is a ContainerItem starter bundle
+# (see TDItems.java line 73) that just hands the player one of each of the 5
+# basic goods. All 16 items appear in the top Items TOC either way; this set
+# is what the standalone Training Good Entities section under Blocks EXCLUDES,
+# since a bundle has no entity form.
+TRAINING_ITEM_ONLY_IDS = {"training_bag"}
+
+# item_id -> registered entity id (from InitGoods.java's GOODS.register()
+# calls, matched to TDItems.java's SpawnGoodItem constructor's first arg).
+# Used to look up "entity.thedigimod.<id>" lang entries so the entity
+# section can show the entity's own display name when it differs from the
+# item's (e.g. target_item item = "Target", but its entity = "Training Target").
+TRAINING_ITEM_TO_ENTITY = {
+	"bag_item": "punching_bag",
+	"target_item": "target",
+	"table_item": "defence_table",
+	"shield_item": "shield",
+	"update_item": "update",
+	"dragon_bone": "dragon_bone",
+	"ball_good": "ball_good",
+	"flytrap_good": "flytrap_good",
+	"red_freezer": "red_freezer",
+	"wind_vane": "wind_vane",
+	"old_pc": "old_pc",
+	"training_rock": "training_rock",
+	"clown_box": "clown_box",
+	"lira_good": "lira_good",
+	"m2_disk_item": "m2_disk",
 }
 
 # Real per-good stat + tier, read straight from TDItems.java's SpawnGoodItem
@@ -144,7 +175,14 @@ CATEGORY_ORDER = ["digivices", "chips", "data", "data_packs", "bytes", "drives",
 # ModderG (mod author): admin_logo is only the icon item for the
 # "digiadmin_tab" creative-mode tab (itemGroup.digiadmin_tab), not something
 # players can get in survival. Skip these entirely rather than list them.
-EXCLUDED_ITEM_IDS = {"admin_logo"}
+EXCLUDED_ITEM_IDS = {
+	"admin_logo",
+	# Duplicate lang entry for "Bubbmon Digitama" (same display name as the
+	# real `bubbmon` item). No matching baby digimon json / entity exists, so
+	# the item has no working spawn behavior - skip it rather than render a
+	# phantom second Bubbmon in the Digitama listing.
+	"bubbmonk",
+}
 
 
 def categorize(item_id: str, lang_name: str) -> str:
@@ -152,7 +190,7 @@ def categorize(item_id: str, lang_name: str) -> str:
 		return "digivices"
 	if item_id.startswith("chip_"):
 		return "chips"
-	if item_id.endswith("_data") and item_id != "poop_data":
+	if item_id.endswith("_data"):
 		return "data"
 	if item_id.endswith("_pack"):
 		return "data_packs"
@@ -194,10 +232,25 @@ def download(url: str, dest: Path) -> bool:
 def fetch_lang_map() -> dict:
 	LANG_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
 	if LANG_CACHE_FILE.exists():
-		return json.loads(LANG_CACHE_FILE.read_text(encoding="utf-8"))
-	lang = fetch_json(LANG_URL)
-	LANG_CACHE_FILE.write_text(json.dumps(lang), encoding="utf-8")
+		lang = json.loads(LANG_CACHE_FILE.read_text(encoding="utf-8"))
+	else:
+		lang = fetch_json(LANG_URL)
+		LANG_CACHE_FILE.write_text(json.dumps(lang), encoding="utf-8")
+	# If a local mod checkout is available, overlay its lang on top of the
+	# remote cache - new items that haven't been pushed to GitHub yet (e.g.
+	# recently added Digitama species) get picked up without waiting for a
+	# manual cache flush.
+	local_lang = Path.home() / "raid/mods/digimods/digimod/src/main/resources/assets/thedigimod/lang/en_us.json"
+	if local_lang.is_file():
+		try:
+			lang = {**lang, **json.loads(local_lang.read_text(encoding="utf-8"))}
+		except json.JSONDecodeError:
+			pass
 	return lang
+
+
+LOCAL_MOD_ROOT = Path.home() / "raid/mods/digimods/digimod"
+LOCAL_MOD_ASSETS = LOCAL_MOD_ROOT / "src/main/resources/assets/thedigimod"
 
 
 def fetch_model(kind: str, name: str) -> dict | None:
@@ -205,7 +258,20 @@ def fetch_model(kind: str, name: str) -> dict | None:
 	cache_file = MODEL_CACHE_DIR / f"{kind}_{name}.json"
 	if cache_file.exists():
 		text = cache_file.read_text(encoding="utf-8")
-		return json.loads(text) if text != "null" else None
+		if text != "null":
+			return json.loads(text)
+		# Cached "null" from a prior remote miss - retry from local first
+		# so items added after the last remote fetch still resolve.
+	local_path = LOCAL_MOD_ASSETS / "models" / kind / f"{name}.json"
+	if local_path.is_file():
+		try:
+			data = json.loads(local_path.read_text(encoding="utf-8"))
+			cache_file.write_text(json.dumps(data), encoding="utf-8")
+			return data
+		except json.JSONDecodeError:
+			pass
+	if cache_file.exists():
+		return None
 	data = fetch_json(MODEL_URL_TMPL.format(kind=kind, name=name))
 	cache_file.write_text(json.dumps(data), encoding="utf-8")
 	return data
@@ -253,7 +319,10 @@ def get_thedigimod_icon(name: str) -> str | None:
 		return None
 	ITEMS_DIR.mkdir(parents=True, exist_ok=True)
 	raw = dest.with_suffix(".raw")
-	if not download(TEXTURE_URL_TMPL.format(path=texture), raw):
+	local_texture = LOCAL_MOD_ASSETS / "textures" / f"{texture}.png"
+	if local_texture.is_file():
+		raw.write_bytes(local_texture.read_bytes())
+	elif not download(TEXTURE_URL_TMPL.format(path=texture), raw):
 		print(f"WARNING: texture download failed for thedigimod:{name} ({texture})", file=sys.stderr)
 		_icon_cache[name] = None
 		return None
@@ -385,6 +454,21 @@ def load_digimon_cache() -> dict[str, dict]:
 			out[f.stem] = json.loads(f.read_text(encoding="utf-8"))
 		except json.JSONDecodeError:
 			continue
+	# The remote-fetched cache drops "egg_type" (the field the mod uses to
+	# group babies by shared egg icon in the creative tab). If a local mod
+	# source is available, merge it in so we can sort Digitama items by egg
+	# type to mirror the in-game grouping.
+	local_dir = Path.home() / "raid/mods/digimods/digimod/src/main/resources/data/thedigimod/digimon"
+	if local_dir.is_dir():
+		for f in local_dir.glob("*.json"):
+			try:
+				local = json.loads(f.read_text(encoding="utf-8"))
+			except json.JSONDecodeError:
+				continue
+			entry = out.setdefault(f.stem, {})
+			for k in ("egg_type", "xps", "evo_stage"):
+				if k in local and k not in entry:
+					entry[k] = local[k]
 	return out
 
 
@@ -467,8 +551,9 @@ SPECIAL_USAGE: dict[str, list[str]] = {
 		'<a href="./td_lore.html#faq-poop" class="wiki-link">Why Is My Digimon Purple?</a>.'
 	],
 	"poop_data": [
-		'A Data-tagged variant of <a href="./td_item_poop.html" class="wiki-link">Digi Poop</a> - its exact drop '
-		"conditions aren't specified in the mod's data."
+		"The 10th Data (XP Item), tied to the Poop attribute. Right-clicking a Digimon with it grants one unit of "
+		"Poop-attribute experience - the same XP type shown on Poop-attribute Digimon's stats as an \"XP Drop\". "
+		"Only Poop-attribute Digimon benefit from it."
 	],
 	"battles_chip": [
 		"Right-clicking a Digimon with this item adds 5 to its battle-win count. Several evolution routes require "
@@ -498,21 +583,13 @@ def usage_paragraphs(item_id: str, category: str, lang_name: str, move_usage: di
 		]
 
 	if category == "chips":
-		move = item_id.removeprefix("chip_")
-		users = move_usage.get(move, [])
-		paras = [
+		# Usage stays intentionally short - the "who uses it / how do I get one"
+		# info lives in the infobox ("Used By") and the Obtaining section, so we
+		# don't repeat the mob list here.
+		return [
 			"A Special Attack Chip - feeding it to a Digimon teaches it as a move. See "
 			'<a href="./td_lore.html#faq-moves" class="wiki-link">Speciall Attack Chips</a>.'
 		]
-		if users:
-			shown = [mob_link(slug, name) for slug, name in users[:10]]
-			more = f", and {len(users) - 10} more" if len(users) > 10 else ""
-			paras.append(
-				f"Used as the default move by: {', '.join(shown)}{more}. Wild Digimon that have this move as "
-				"their default have a 5% chance of dropping its chip on death (the mod's default "
-				"\"move chip drop chance\" config value)."
-			)
-		return paras
 
 	if category == "data":
 		attr = lang_name.removesuffix(" Data")
@@ -531,11 +608,8 @@ def usage_paragraphs(item_id: str, category: str, lang_name: str, move_usage: di
 
 	if category == "bytes":
 		stat = lang_name.removesuffix(" Byte")
-		return [
-			f"Directly raises a Digimon's {stat} stat when used. Wild Digimon (except babies) have a 5% chance "
-			"of dropping each Byte on death (the mod's default \"chance of stat bytes drop\" config value) - see "
-			'<a href="./td_lore.html#faq-bytes" class="wiki-link">Stat Bytes</a>.'
-		]
+		# Drop info belongs in Obtaining, not Usage.
+		return [f"Directly raises a Digimon's {stat} stat when used."]
 
 	if category == "drives" and item_id in DRIVE_GENERIC_STATS:
 		stat = DRIVE_GENERIC_STATS[item_id]
@@ -544,14 +618,12 @@ def usage_paragraphs(item_id: str, category: str, lang_name: str, move_usage: di
 	if category == "digitama":
 		species = lang_name.removesuffix(" Digitama")
 		implemented = item_id in digimon_cache
-		base = (
-			f"A Digitama (Digimon Egg) item themed after {mob_link(item_id, entity_lang.get(item_id, species))}, "
-			"which is implemented in the mod."
-			if implemented else
-			f"A Digitama (Digimon Egg) item themed after {html.escape(species)}. This species doesn't appear to be "
-			"implemented as a mob in the mod yet."
-		)
-		return [base, "The exact hatching interaction isn't specified in the mod's item or recipe data."]
+		mob = mob_link(item_id, entity_lang.get(item_id, species)) if implemented else html.escape(species)
+		return [
+			f"Right-click on a block to spawn a tamed {mob} at that location, similar to a vanilla spawn egg "
+			"but with the resulting Digimon already tamed by the user. The item is consumed on use, and plays "
+			"the turtle-egg hatch sound."
+		]
 
 	if category == "training":
 		stat = TRAINING_STAT_MAP.get(item_id)
@@ -682,7 +754,7 @@ USED_IN_TOC_RE = re.compile(
 
 
 def patch_used_in_section(page_html: str, entries: list[tuple[str, str, str | None]]) -> str:
-	"""Replace (or insert / remove) the 'Crafting Material For' section + TOC
+	"""Replace (or insert / remove) the 'Material for' section + TOC
 	entry on an existing item page without touching any other section."""
 	# Strip previous version wherever it landed.
 	page_html = USED_IN_SECTION_RE.sub("", page_html)
@@ -713,7 +785,7 @@ def patch_used_in_section(page_html: str, entries: list[tuple[str, str, str | No
 				toc_li = (
 					'\n            <li><a href="#crafting-material-for" class="mod-content-link">'
 					'<span class="mod-content-bullet"></span>'
-					'<span>Crafting Material For</span></a></li>'
+					'<span>Material for</span></a></li>'
 				)
 				after = last_li + len("</li>")
 				page_html = page_html[:after] + toc_li + page_html[after:]
@@ -732,7 +804,7 @@ def render_used_in_section(entries: list[tuple[str, str, str | None]]) -> str:
 		)
 	return (
 		'      <section id="crafting-material-for" class="lore-box lore-section">\n'
-		'        <h2 class="lore-section-title">Crafting Material For</h2>\n'
+		'        <h2 class="lore-section-title">Material for</h2>\n'
 		'        <div class="lore-section-body">\n'
 		'          <ul class="recipe-legend">\n'
 		+ "\n".join(lines) + "\n"
@@ -903,7 +975,7 @@ def generate_item_page(item_id: str, display_name: str, category: str, icon_rel:
 
 	used_in_html = render_used_in_section(used_in_entries or [])
 	if used_in_entries:
-		toc_entries.append('            <li><a href="#crafting-material-for" class="mod-content-link"><span class="mod-content-bullet"></span><span>Crafting Material For</span></a></li>')
+		toc_entries.append('            <li><a href="#crafting-material-for" class="mod-content-link"><span class="mod-content-bullet"></span><span>Material for</span></a></li>')
 
 	extra_stats = ""
 	if category == "chips":
@@ -915,11 +987,12 @@ def generate_item_page(item_id: str, display_name: str, category: str, icon_rel:
 			extra_stats = f"            <dt>Used By</dt>\n            <dd>{shown}{more}</dd>\n"
 	elif category == "digitama" and item_id in digimon_cache:
 		link = mob_link(item_id, entity_lang.get(item_id, display_name))
-		extra_stats = f"            <dt>Hatches Into</dt>\n            <dd>{link}</dd>\n"
+		extra_stats = f"            <dt>Spawns</dt>\n            <dd>{link}</dd>\n"
 
 	paras = usage_paragraphs(item_id, category, display_name, move_usage, digimon_cache, entity_lang)
-	if is_creative_only:
-		paras = ["Creative-mode only - not obtainable through normal survival gameplay."] + paras
+	# For creative-only items we don't repeat the "not obtainable in survival"
+	# note in Usage - Obtaining already says "Creative Mode only in the current
+	# version of the mod." and that's the single source of truth for that fact.
 	usage_html = "\n".join(f"          <p>{p}</p>" for p in paras)
 
 	return PAGE_TEMPLATE.format(
@@ -938,7 +1011,35 @@ def generate_item_page(item_id: str, display_name: str, category: str, icon_rel:
 # ---------------------------------------------------------------------------
 # Index section + nav
 
-def build_index_section(items_by_category: dict[str, list[tuple[str, str, str]]]) -> tuple[str, str, str]:
+def build_index_section(items_by_category: dict[str, list[tuple[str, str, str]]], digimon_cache: dict | None = None) -> tuple[str, str, str]:
+	digimon_cache = digimon_cache or {}
+	# Group Digitamas by the item texture their model actually uses (e.g.
+	# "item/nightmare_baby") rather than the digimon json's egg_type field.
+	# The two usually match, but some babies (Kuramon) leave egg_type unset
+	# while their item still points at a shared egg texture - and grouping
+	# by texture is what matches the icons the user sees in the listing.
+	xp_by_baby = {slug: (data.get("xps") or [0])[0] for slug, data in digimon_cache.items()}
+	texture_by_baby: dict[str, str] = {}
+	for entries in items_by_category.values():
+		for item_id, _display, _icon in entries:
+			tex = resolve_texture(item_id) or ""
+			if tex:
+				texture_by_baby[item_id] = tex
+	texture_order: dict[str, int] = {}
+	for slug, tex in texture_by_baby.items():
+		if not tex:
+			continue
+		texture_order[tex] = min(texture_order.get(tex, xp_by_baby.get(slug, 0)), xp_by_baby.get(slug, 0))
+
+	def sort_key(cat: str, entry):
+		item_id, display_name, _ = entry
+		if cat == "digitama":
+			tex = texture_by_baby.get(item_id, "")
+			# Unknown textures sort last so unresolved stragglers don't
+			# wedge themselves into a random group.
+			return (texture_order.get(tex, 10**9), xp_by_baby.get(item_id, 0), display_name)
+		return (display_name,)
+
 	lines = []
 	first_href = first_icon = None
 	for cat in CATEGORY_ORDER:
@@ -947,7 +1048,7 @@ def build_index_section(items_by_category: dict[str, list[tuple[str, str, str]]]
 			continue
 		title = CATEGORY_META[cat][0]
 		lines.append(f'            <li class="category-label">{html.escape(title)}</li>')
-		for item_id, display_name, icon_rel in sorted(entries, key=lambda e: e[1]):
+		for item_id, display_name, icon_rel in sorted(entries, key=lambda e: sort_key(cat, e)):
 			href = f"./td_item_{item_id}.html"
 			if first_href is None:
 				first_href, first_icon = href, icon_rel
@@ -962,6 +1063,77 @@ def build_index_section(items_by_category: dict[str, list[tuple[str, str, str]]]
 	return "\n".join(lines), first_href or "#", first_icon or ""
 
 
+def build_training_goods_section(
+	items_by_category: dict[str, list[tuple[str, str, str]]],
+	entity_lang: dict[str, str],
+) -> tuple[str, str]:
+	"""Emit the standalone "Training Good Entities" gallery.
+
+	Returns (list_html, entries_json_html). The list is a Mobs-style
+	`<li data-tg-idx>` roster with tier group-labels; the entries block is
+	a JSON array the client-side rotator uses to render name/image/stats
+	when a list entry is clicked. Every SpawnGoodItem in the mod has a
+	matching AbstractTrainingGood entity - documented here as an entity
+	(no separate page). Items with no entity form (training_bag bundle)
+	are skipped.
+	"""
+	pool = [
+		e for e in (items_by_category.get("training") or [])
+		if e[0] in TRAINING_ITEM_TO_ENTITY
+	]
+	basic, advanced = [], []
+	for item_id, item_name, icon_rel in pool:
+		entity_id = TRAINING_ITEM_TO_ENTITY[item_id]
+		entity_name = entity_lang.get(entity_id) or item_name
+		row = (item_id, entity_id, entity_name, item_name, icon_rel)
+		(advanced if item_id in TRAINING_ADVANCED_IDS else basic).append(row)
+	basic.sort(key=lambda r: r[2])
+	advanced.sort(key=lambda r: r[2])
+
+	list_lines: list[str] = []
+	entries: list[dict] = []
+
+	def push_group(title: str, group: list, tier_label: str) -> None:
+		if not group:
+			return
+		list_lines.append(
+			f'            <li class="mob-tier-label">{html.escape(title)}</li>'
+		)
+		for item_id, entity_id, entity_name, item_name, icon_rel in group:
+			idx = len(entries)
+			list_lines.append(
+				f'            <li data-tg-idx="{idx}">{html.escape(entity_name)}</li>'
+			)
+			entry: dict = {
+				"name": entity_name,
+				"img": f"./src/assets/images/the_digimod/training_goods/{entity_id}.png",
+				"entity_id": entity_id,
+				"item_id": item_id,
+				"item_name": item_name,
+				"item_href": f"./td_item_{item_id}.html",
+				"stat": TRAINING_STAT_MAP.get(item_id, "-"),
+				"tier": tier_label,
+			}
+			xp_idx = TRAINING_XP_MAP.get(item_id)
+			if xp_idx is not None and 0 <= xp_idx < len(XP_ITEMS):
+				xp_id, xp_label = XP_ITEMS[xp_idx]
+				entry["xp"] = {
+					"label": xp_label,
+					"img": f"./src/assets/images/the_digimod/xp_items/{xp_id}.png",
+					"href": f"./td_item_{xp_id}.html",
+				}
+			entries.append(entry)
+
+	push_group("Basic Training Good Entities", basic, "Basic")
+	push_group("High Tier Training Good Entities", advanced, "High Tier")
+
+	entries_lines = [
+		"        " + json.dumps(e) + ("," if i < len(entries) - 1 else "")
+		for i, e in enumerate(entries)
+	]
+	return "\n".join(list_lines), "\n".join(entries_lines)
+
+
 def main() -> int:
 	lang = fetch_lang_map()
 	item_lang = {k.removeprefix("item.thedigimod."): v for k, v in lang.items() if k.startswith("item.thedigimod.")}
@@ -973,7 +1145,7 @@ def main() -> int:
 	recipes_by_result = fetch_recipes()
 
 	# Reverse recipe index: TD ingredient item_id -> sorted list of result item_ids
-	# that consume it. Used to build the "Crafting Material For" section on each
+	# that consume it. Used to build the "Material for" section on each
 	# ingredient's page.
 	used_in: dict[str, set[str]] = {}
 	for result_id, recipe in recipes_by_result.items():
@@ -987,7 +1159,7 @@ def main() -> int:
 	items_by_category: dict[str, list[tuple[str, str, str]]] = {}
 	generated_files = set()
 	# id -> (display_name, icon_rel) for every emitted page. Needed to render
-	# "Crafting Material For" entries with correct icons/labels.
+	# "Material for" entries with correct icons/labels.
 	item_meta: dict[str, tuple[str, str]] = {}
 
 	# First pass: collect metadata for every item that will get a page.
@@ -1013,7 +1185,7 @@ def main() -> int:
 
 	# Second pass. Item pages are NOT auto-regenerated any more - they are
 	# hand-authored (Usage / Obtaining / Crafting prose is written by a human).
-	# For pages that already exist we only patch the "Crafting Material For"
+	# For pages that already exist we only patch the "Material for"
 	# section and its TOC entry in place, so recipe changes stay in sync while
 	# manual prose is preserved. Pages for brand-new items still get a full
 	# template so authoring can start from a scaffold.
@@ -1047,7 +1219,7 @@ def main() -> int:
 		if existing.name not in generated_files:
 			print(f"NOTE: orphan item page (no matching lang entry): {existing.name}", file=sys.stderr)
 
-	list_html, first_href, first_icon = build_index_section(items_by_category)
+	list_html, first_href, first_icon = build_index_section(items_by_category, digimon_cache)
 
 	content = TD_LORE_HTML.read_text(encoding="utf-8")
 
@@ -1112,6 +1284,38 @@ def main() -> int:
 			'            <li>\n              <a href="#section-items" class="mod-content-link">\n'
 			f'                <img src="{first_icon}" alt="" class="mod-content-icon">\n'
 			'                <span>Items</span>\n              </a>\n            </li>\n          </ul>',
+		)
+
+	# Standalone Training Good Entities gallery (Mobs-style: click-to-select
+	# list on the left, rotator with per-entity stats on the right). Its HTML
+	# skeleton and rotator JS are hand-authored in td_lore.html; we only
+	# refresh the two markers here - the `<li>` list and the JS entries JSON.
+	training_list_html, training_entries_html = build_training_goods_section(
+		items_by_category, entity_lang
+	)
+	if "TD-TRAINING-GOODS:LIST:START" in content:
+		content = re.sub(
+			r'<!-- TD-TRAINING-GOODS:LIST:START.*?<!-- TD-TRAINING-GOODS:LIST:END -->',
+			lambda _: (
+				"<!-- TD-TRAINING-GOODS:LIST:START (generated by src/scripts/sync_td_items.py, do not hand-edit) -->\n"
+				f"{training_list_html}\n"
+				"          <!-- TD-TRAINING-GOODS:LIST:END -->"
+			),
+			content,
+			count=1,
+			flags=re.DOTALL,
+		)
+	if "TD-TRAINING-GOODS:ENTRIES:START" in content:
+		content = re.sub(
+			r'// TD-TRAINING-GOODS:ENTRIES:START.*?// TD-TRAINING-GOODS:ENTRIES:END',
+			lambda _: (
+				"// TD-TRAINING-GOODS:ENTRIES:START (generated by src/scripts/sync_td_items.py, do not hand-edit)\n"
+				f"{training_entries_html}\n"
+				"        // TD-TRAINING-GOODS:ENTRIES:END"
+			),
+			content,
+			count=1,
+			flags=re.DOTALL,
 		)
 
 	TD_LORE_HTML.write_text(content, encoding="utf-8")
