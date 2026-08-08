@@ -217,6 +217,13 @@ CONFIRMED_ALIASES: dict[str, str] = {
 		# side (to be renamed in a future version). "Hyokomon" (a separate,
 		# similarly-named Trello card) is NOT this or any other implemented
 		# digimon - don't alias it.
+	"Cocomon": "conomon",  # confirmed by ModderG (mod author): the Trello card
+		# is conomon.json - a previous pass here wrongly assumed the matching
+		# lang name was a coincidence/mod bug and rejected it. It wasn't.
+	"Pipimon": "datirimon",  # confirmed by ModderG (mod author): same story as
+		# Cocomon above - the Trello card is datirimon.json, not a different
+		# not-yet-implemented digimon.
+	"V-dramon (Black)": "veedramonblack",  # lang: "V-dramon (Black)"
 }
 
 # Trello-vs-repo name collisions where the direct slugify() match would grab
@@ -234,8 +241,6 @@ SLUG_OVERRIDES: dict[str, str] = {
 # Checked and rejected: these look like matches (same/similar display name in
 # the lang file, or similar spelling) but are NOT the same digimon. Listed so
 # nobody re-adds them after seeing them in the suggestions output.
-#   'Cocomon'    ~ conomon.json     (lang wrongly says "Cocomon" - mod bug)
-#   'Pipimon'    ~ datirimon.json   (lang wrongly says "Pipimon" - mod bug)
 #   'ShoutmonX5' ~ shoutmonx3.json  (canonically distinct Shoutmon fusion
 #                                     forms, just a similar naming pattern -
 #                                     texture doesn't clearly match either)
