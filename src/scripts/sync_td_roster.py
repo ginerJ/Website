@@ -217,13 +217,12 @@ CONFIRMED_ALIASES: dict[str, str] = {
 		# side (to be renamed in a future version). "Hyokomon" (a separate,
 		# similarly-named Trello card) is NOT this or any other implemented
 		# digimon - don't alias it.
-	"Cocomon": "conomon",  # confirmed by ModderG (mod author): the Trello card
-		# is conomon.json - a previous pass here wrongly assumed the matching
-		# lang name was a coincidence/mod bug and rejected it. It wasn't.
-	"Pipimon": "datirimon",  # confirmed by ModderG (mod author): same story as
-		# Cocomon above - the Trello card is datirimon.json, not a different
-		# not-yet-implemented digimon.
-	"V-dramon (Black)": "veedramonblack",  # lang: "V-dramon (Black)"
+	# Cocomon -> conomon.json, Pipimon -> datirimon.json, and
+	# "V-dramon (Black)" -> veedramonblack.json used to need entries here too
+	# (all confirmed by ModderG, mod author), but as of build_lang_slug_map()
+	# they resolve automatically since their Trello names match the mod's own
+	# lang display name exactly - kept out of this dict to avoid duplicating
+	# what resolve_slug() already does on its own.
 }
 
 # Trello-vs-repo name collisions where the direct slugify() match would grab
@@ -335,12 +334,44 @@ def list_implemented_slugs() -> set:
 	}
 
 
-def resolve_slug(clean_name: str, tier_key: str, implemented: set) -> str | None:
+def build_lang_slug_map(lang_display: dict, implemented: set) -> dict[str, str]:
+	"""Map slugify(in-game display name) -> file slug, for every implemented
+	digimon. Used by resolve_slug() as an EXACT-match fallback so a Trello
+	card whose name matches the mod's own displayed name auto-resolves, even
+	when the file slug itself differs (e.g. conomon.json displaying as
+	"Cocomon").
+
+	This is safe where the fuzzy suggest_slug_candidates() isn't: an exact
+	slug match doesn't suffer from the near-miss false positives that come
+	from string similarity (e.g. "Hyokomon" vs. "Yokomon" - two different
+	slugs, so this map correctly leaves that one alone). If two implemented
+	digimon happen to slugify to the same display name (not currently the
+	case, but the mod's lang file has had duplicates before), that slug is
+	dropped from the map entirely rather than guessing which one a card
+	means.
+	"""
+	by_lang_slug: dict[str, list[str]] = {}
+	for file_slug, display in lang_display.items():
+		if file_slug not in implemented or not display:
+			continue
+		by_lang_slug.setdefault(slugify(display), []).append(file_slug)
+	return {k: v[0] for k, v in by_lang_slug.items() if len(v) == 1}
+
+
+def resolve_slug(
+	clean_name: str,
+	tier_key: str,
+	implemented: set,
+	lang_slug_map: dict[str, str] | None = None,
+) -> str | None:
 	"""Return the implemented slug for a card, or None if not in the mod.
 
 	Checked in order: a SLUG_OVERRIDES entry (a direct-match would grab the
-	wrong file), the Trello name slugified directly, or a manual
-	CONFIRMED_ALIASES override. Deliberately NOT automatic beyond that - see
+	wrong file), the Trello name slugified directly against file slugs, the
+	same slugified name against every implemented digimon's actual in-game
+	display name (lang_slug_map - exact match only, see build_lang_slug_map()
+	for why that's safe), or a manual CONFIRMED_ALIASES override for anything
+	that still doesn't line up. Deliberately NOT fuzzy beyond that - see
 	suggest_slug_candidates() for why.
 	"""
 	if clean_name in SLUG_OVERRIDES:
@@ -349,21 +380,22 @@ def resolve_slug(clean_name: str, tier_key: str, implemented: set) -> str | None
 	direct = slugify(clean_name)
 	if direct in implemented:
 		return direct
+	if lang_slug_map and direct in lang_slug_map:
+		return lang_slug_map[direct]
 	return CONFIRMED_ALIASES.get(clean_name)
 
 
 def suggest_slug_candidates(clean_name: str, tier_key: str, implemented: set, lang_display: dict) -> list[str]:
 	"""Suggest (never apply) implemented slugs that might be this card, by
-	comparing the Trello name against every implemented digimon's actual
-	in-game display name (en_us.json) - close matches only, gated by the
-	evo_stage being valid for the card's tier.
+	fuzzy-comparing the Trello name against every implemented digimon's
+	actual in-game display name (en_us.json) - close-but-not-exact matches
+	only, gated by the evo_stage being valid for the card's tier.
 
-	This is suggestion-only and intentionally not wired into in_mod: the mod
-	has real duplicate/mislabeled lang entries (e.g. conomon.json's lang key
-	incorrectly says "Cocomon", collidng with the actual separate baby
-	digimon "Cocomon"), so even an exact name match here is not proof - it
-	must be checked by hand and added to CONFIRMED_ALIASES once confirmed
-	(see that dict's docstring for the two-signal check to run first).
+	Exact display-name matches are handled automatically by resolve_slug()
+	via build_lang_slug_map() and never reach this function. This one is for
+	near-misses only (e.g. "Hyokomon" vs. the implemented "Yokomon"), which
+	really can be a different digimon that just has a similar name - those
+	must be checked by hand and added to CONFIRMED_ALIASES once confirmed.
 	"""
 	target = slugify(clean_name)
 	valid_stages = TIER_STAGE_INDEXES.get(tier_key, set())
@@ -695,6 +727,7 @@ def main() -> int:
 	implemented = list_implemented_slugs()
 	implemented |= set(CONFIRMED_ALIASES.values())
 	lang_display = fetch_lang_display_map()
+	lang_slug_map = build_lang_slug_map(lang_display, implemented)
 
 	evolves_from_map = build_evolves_from_map(implemented)
 
@@ -734,7 +767,7 @@ def main() -> int:
 	def process_card(card: dict, source_tier_key: str, source_tier_slug: str) -> dict | None:
 		clean_name = clean_card_name(card["name"])
 		credit = extract_credit(card["name"])
-		resolved_slug = resolve_slug(clean_name, source_tier_key, implemented)
+		resolved_slug = resolve_slug(clean_name, source_tier_key, implemented, lang_slug_map)
 		slug = resolved_slug or slugify(clean_name)
 		in_mod = resolved_slug is not None
 
