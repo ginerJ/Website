@@ -720,7 +720,11 @@
         </section>
 
         <aside class="lore-box lore-section item-infobox items-rotator">
-          <h2 id="mobs-rotator-name" class="lore-section-title">Botamon</h2>
+          <h2 class="lore-section-title rotator-title-nav">
+            <button type="button" id="mobs-rotator-prev" class="rotator-nav-btn" aria-label="Previous Digimon">&#8249;</button>
+            <span id="mobs-rotator-name" class="rotator-title-text">Botamon</span>
+            <button type="button" id="mobs-rotator-next" class="rotator-nav-btn" aria-label="Next Digimon">&#8250;</button>
+          </h2>
           <div id="mobs-rotator-link" class="item-infobox-image items-rotator-image">
             <img id="mobs-rotator-img" src="./src/assets/images/the_digimod/roster/baby1_bommon.png" alt="">
           </div>
@@ -2632,17 +2636,14 @@
         ['evolves_from', 'Evolves From'],
         ['evolves_into', 'Evolves Into']
       ];
-      function renderStats(stats, implemented, credit, evoStage) {
-        if (!statsEl) return;
+      function buildStatsHtml(stats, implemented, credit, evoStage) {
         var creditRow = credit ? '<dt>Modeled By</dt><dd>' + credit + '</dd>' : '';
         var stageRow = evoStage ? '<dt>Evo Stage</dt><dd>' + evoStage + '</dd>' : '';
         if (!stats) {
           if (implemented) {
-            statsEl.innerHTML = creditRow + stageRow + '<dt>Status</dt><dd>In the mod - no stats data extracted for this entry</dd>';
-          } else {
-            statsEl.innerHTML = creditRow + stageRow;
+            return creditRow + stageRow + '<dt>Status</dt><dd>In the mod - no stats data extracted for this entry</dd>';
           }
-          return;
+          return creditRow + stageRow;
         }
         var rows = creditRow;
         STAT_LABELS.forEach(function (pair) {
@@ -2673,14 +2674,65 @@
           if (key === 'entity_id') value = '<code>' + value + '</code>';
           rows += '<dt>' + label + '</dt><dd>' + value + '</dd>';
         });
-        statsEl.innerHTML = rows;
+        return rows;
       }
-      function show(idx) {
+      function renderStats(stats, implemented, credit, evoStage) {
+        if (!statsEl) return;
+        statsEl.innerHTML = buildStatsHtml(stats, implemented, credit, evoStage);
+        statsEl.style.minHeight = (implemented ? statsMinHeights.implemented : statsMinHeights.planned) + 'px';
+      }
+      // Different Digimon have different stat rows (some lack evolves_into,
+      // xp_drops, etc.) - without a locked-in height the rotator card resizes
+      // on every switch, which shoves the whole sticky layout around. Measure
+      // the tallest possible stats block up front and pin it as a floor.
+      // Kept separate for implemented vs. planned (not-yet-in-the-mod) entries,
+      // since planned ones only ever show a credit line - forcing them to the
+      // same floor as a fully-statted entry left a huge blank gap in the card.
+      var statsMinHeights = { implemented: 0, planned: 0 };
+      function lockStatsHeight() {
+        if (!statsEl) return;
+        var probe = statsEl.cloneNode(false);
+        probe.style.position = 'absolute';
+        probe.style.visibility = 'hidden';
+        probe.style.pointerEvents = 'none';
+        probe.style.minHeight = '0';
+        probe.style.width = statsEl.getBoundingClientRect().width + 'px';
+        document.body.appendChild(probe);
+        entries.forEach(function (it) {
+          var implemented = it.img.indexOf('/roster/planned_') === -1;
+          probe.innerHTML = buildStatsHtml(it.stats, implemented, it.credit, it.evo_stage);
+          var key = implemented ? 'implemented' : 'planned';
+          statsMinHeights[key] = Math.max(statsMinHeights[key], probe.scrollHeight);
+        });
+        document.body.removeChild(probe);
+      }
+      var currentIdx = 0;
+      function show(idx, scrollList) {
+        currentIdx = idx;
         var it = entries[idx];
         imgEl.src = it.img;
         imgEl.alt = it.name;
         if (nameEl) nameEl.textContent = it.name;
         renderStats(it.stats, it.img.indexOf('/roster/planned_') === -1, it.credit, it.evo_stage);
+        if (scrollList) {
+          var li = document.querySelector('#section-mobs li[data-idx="' + idx + '"]');
+          if (li) li.scrollIntoView({ block: 'center' });
+        }
+      }
+      var prevBtn = document.getElementById('mobs-rotator-prev');
+      var nextBtn = document.getElementById('mobs-rotator-next');
+      if (prevBtn) {
+        prevBtn.addEventListener('click', function () {
+          // No scrollList here on purpose: scrollIntoView tends to nudge the
+          // whole document scroll position too, not just the roster list box,
+          // which is exactly the "screen moves" jank the buttons should avoid.
+          show((currentIdx - 1 + entries.length) % entries.length);
+        });
+      }
+      if (nextBtn) {
+        nextBtn.addEventListener('click', function () {
+          show((currentIdx + 1) % entries.length);
+        });
       }
       if (statsEl) {
         statsEl.addEventListener('click', function (ev) {
@@ -2707,6 +2759,7 @@
           if (li) li.scrollIntoView({ block: 'center' });
         }
       }
+      lockStatsHeight();
       showFromHash();
       window.addEventListener('hashchange', showFromHash);
     })();

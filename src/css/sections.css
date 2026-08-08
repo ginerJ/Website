@@ -994,6 +994,46 @@ a.hero-badge-card:hover {
     inset -2px -2px 0 rgba(0, 0, 0, 0.55);
 }
 
+.rotator-title-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.rotator-title-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rotator-nav-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 0;
+  border-radius: 0.2rem;
+  background: rgba(255, 255, 255, 0.10);
+  color: inherit;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.08s ease;
+}
+
+.rotator-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.rotator-nav-btn:active {
+  transform: translateY(1px);
+}
+
 .lore-section-body {
   color: var(--color-text);
 }
