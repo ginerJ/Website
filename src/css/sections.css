@@ -43,6 +43,7 @@ body {
 
 html {
   scroll-behavior: smooth;
+  zoom: 90%;
 }
 
 #section-mobs,
@@ -761,6 +762,23 @@ a {
   overflow: hidden;
 }
 
+.hero-render {
+  display: block;
+  height: 56vh;
+  max-height: 520px;
+  width: auto;
+  max-width: 100%;
+  margin: 1.2rem auto 1.35rem;
+}
+
+@media (max-width: 1279px) {
+  .hero-render {
+    height: 36vh;
+    max-height: 320px;
+    margin: 0.9rem auto 1.05rem;
+  }
+}
+
 .hero-runner {
   position: absolute;
   bottom: 0;
@@ -851,7 +869,7 @@ a {
   --bevel-lo: rgba(0, 0, 0, 0.55);
   position: relative;
   display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  grid-template-columns: 2.3rem minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.5rem;
   width: 100%;
@@ -882,13 +900,13 @@ a.hero-badge-card:hover {
 }
 
 .hero-badge-icon {
-  width: 2.1rem;
-  height: 2.1rem;
+  width: 2.3rem;
+  height: 2.3rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--badge-accent);
-  font-size: 1.05rem;
+  font-size: 1.35rem;
   background: #23242a;
   box-shadow:
     inset 1px 1px 0 rgba(0, 0, 0, 0.55),
@@ -896,8 +914,8 @@ a.hero-badge-card:hover {
 }
 
 .hero-badge-logo {
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1.5rem;
+  height: 1.5rem;
   display: block;
   image-rendering: pixelated;
 }
@@ -1221,6 +1239,11 @@ details[open] > summary::after {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  /* cancel the page-wide zoom in this subtree: position: sticky
+     miscomputes its offsets under CSS zoom and the sidebar ends up
+     overlapping the content next to it. Keeping ad slots unzoomed
+     also matches AdSense's expectation of untouched slot sizes. */
+  zoom: 111.111%;
 }
 
 .ad-sticky {
