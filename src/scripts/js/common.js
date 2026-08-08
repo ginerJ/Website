@@ -19,7 +19,7 @@ const navbarHTML = `
       <i class="fa-brands fa-twitter"></i>
     </a>
 
-    <a href="https://github.com/ginerJ" target="_blank" rel="noopener noreferrer" class="social-link hover:text-purple-400" aria-label="GitHub">
+    <a href="https://github.com/themodderg" target="_blank" rel="noopener noreferrer" class="social-link hover:text-purple-400" aria-label="GitHub">
       <i class="fa-brands fa-github"></i>
     </a>
 
@@ -72,7 +72,7 @@ const navbarHTML = `
         <a class="site-sidebar-social site-sidebar-social-twitter" href="https://x.com/themodderG" target="_blank" rel="noopener noreferrer">
           <span class="site-sidebar-social-row"><i class="fa-brands fa-twitter"></i><span>Twitter / X</span></span>
         </a>
-        <a class="site-sidebar-social site-sidebar-social-github" href="https://github.com/ginerJ" target="_blank" rel="noopener noreferrer">
+        <a class="site-sidebar-social site-sidebar-social-github" href="https://github.com/themodderg" target="_blank" rel="noopener noreferrer">
           <span class="site-sidebar-social-row"><i class="fa-brands fa-github"></i><span>GitHub</span></span>
         </a>
         <a class="site-sidebar-social site-sidebar-social-youtube" href="https://www.youtube.com/@TheModderG" target="_blank" rel="noopener noreferrer">
