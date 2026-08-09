@@ -2658,8 +2658,13 @@
           } else if (key === 'default_move' && stats.default_move_href) {
             value = '<a href="' + stats.default_move_href + '" class="wiki-link">' + value + '</a>';
           } else if (key === 'spawn_biomes') {
+            // Some Digimon spawn in a couple dozen biomes, others in
+            // 200+ - without a capped, independently-scrolling box here the
+            // dt/dd list itself grows unbounded and blows out the rotator
+            // card's locked height (see lockStatsHeight()) for every entry,
+            // not just the biome-heavy ones.
             if (!value.length) return;
-            value = value.map(function (id) { return '<code>' + id + '</code>'; }).join(', ');
+            value = '<div class="spawn-biome-list">' + value.map(function (id) { return '<code>' + id + '</code>'; }).join(', ') + '</div>';
           } else if (key === 'evolves_into' || key === 'evolves_from') {
             if (!value.length) return;
             value = value.map(function (slug) {

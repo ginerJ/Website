@@ -2459,6 +2459,25 @@ footer {
   padding: 0 0 0.35rem;
 }
 
+.spawn-biome-list {
+  max-height: 6.5rem;
+  overflow-y: auto;
+  padding-right: 0.4rem;
+  line-height: 1.6;
+}
+
+.spawn-biome-list::-webkit-scrollbar {
+  width: 0.4rem;
+}
+
+.spawn-biome-list::-webkit-scrollbar-track {
+  background: var(--color-primary);
+}
+
+.spawn-biome-list::-webkit-scrollbar-thumb {
+  background: var(--color-secondary-selected);
+}
+
 .item-stats code {
   font-family: 'Courier New', 'Consolas', monospace;
   font-size: 0.78rem;
