@@ -17,6 +17,13 @@ lang file has real duplicate/mislabeled entries that can look like a match.
 
 Also updates the digimon-count sentence in the About The Mod text
 (src/scripts/js/texts/the_digimod.js) with the current in-mod/planned totals.
+
+Per-digimon "spawn_biomes" (vanilla + modded biome resource ids it can
+naturally spawn in) is computed from the mod's own biome_modifier + tag
+files under data/thedigimod/ - see build_spawn_biomes_map(). That data is
+read straight off a local checkout (mod_source_root) regardless of whether
+--local was passed for the digimon json/lang fetches, since it's static mod
+config, not per-digimon content.
 """
 
 from pathlib import Path
@@ -413,6 +420,54 @@ def suggest_slug_candidates(clean_name: str, tier_key: str, implemented: set, la
 	return candidates
 
 
+def build_spawn_biomes_map(mod_source_root: Path) -> dict[str, list[str]]:
+	"""Map digimon slug -> sorted list of biome resource ids (vanilla + modded)
+	it can naturally spawn in, computed from the mod's own biome/spawn config:
+
+	  data/thedigimod/forge/biome_modifier/*.json  (type add_tag_spawns /
+	    add_tag_monster_spawns) pairs a biome tag with an entity tag - e.g.
+	    "#thedigimod:grassy" spawns everything in
+	    "thedigimod:spawns/rookies/grassy_biomes".
+	  data/thedigimod/tags/worldgen/biome/<name>.json resolves a biome tag to
+	    its actual biome ids (a flat list - no nested tag refs in this mod's
+	    files, confirmed by inspection). Optional-mod-compat entries are
+	    `{"id": "...", "required": false}` objects instead of plain strings.
+	  data/thedigimod/tags/entity_types/<path>.json resolves an entity tag to
+	    its digimon entity ids the same way.
+
+	This is read straight off disk (not fetched from GitHub) since it's static
+	mod config unrelated to per-digimon json/lang content, and a local
+	checkout is always available (mod_source_root, whether or not --local was
+	passed for the digimon json fetches themselves)."""
+	data_root = mod_source_root / "src/main/resources/data/thedigimod"
+	biome_mod_dir = data_root / "forge/biome_modifier"
+	biome_tag_dir = data_root / "tags/worldgen/biome"
+	entity_tag_dir = data_root / "tags/entity_types"
+	if not biome_mod_dir.is_dir():
+		return {}
+
+	def resolve_tag_values(path: Path) -> list[str]:
+		data = json.loads(path.read_text(encoding="utf-8"))
+		return [v if isinstance(v, str) else v["id"] for v in data.get("values", [])]
+
+	mapping: dict[str, set] = {}
+	for f in sorted(biome_mod_dir.glob("*.json")):
+		d = json.loads(f.read_text(encoding="utf-8"))
+		if d.get("type") not in ("thedigimod:add_tag_spawns", "thedigimod:add_tag_monster_spawns"):
+			continue
+		biome_ns, biome_name = d["biomes"].lstrip("#").split(":", 1)
+		entity_ns, entity_name = d["entity_tag"].split(":", 1)
+		if biome_ns != MOD_ID or entity_ns != MOD_ID:
+			continue
+		biomes = resolve_tag_values(biome_tag_dir / f"{biome_name}.json")
+		entities = resolve_tag_values(entity_tag_dir / f"{entity_name}.json")
+		for e in entities:
+			slug = e.split(":", 1)[1]
+			mapping.setdefault(slug, set()).update(biomes)
+
+	return {slug: sorted(biomes) for slug, biomes in mapping.items()}
+
+
 def build_evolves_from_map(all_slugs: set) -> dict:
 	# "evolves_from" isn't a field in any single digimon's json - it only
 	# exists as the reverse of every OTHER digimon's "evolutions" keys, so it
@@ -425,7 +480,7 @@ def build_evolves_from_map(all_slugs: set) -> dict:
 	return {k: sorted(v) for k, v in reverse.items()}
 
 
-def fetch_digimon_stats(slug: str, evolves_from_map: dict) -> dict:
+def fetch_digimon_stats(slug: str, evolves_from_map: dict, spawn_biomes_map: dict) -> dict:
 	data = fetch_digimon_json(slug)
 
 	evolutions = data.get("evolutions") or {}
@@ -470,6 +525,7 @@ def fetch_digimon_stats(slug: str, evolves_from_map: dict) -> dict:
 		"xp_drops": xp_drops,
 		"evolves_into": sorted(evolutions.keys()),
 		"evolves_from": evolves_from_map.get(slug, []),
+		"spawn_biomes": spawn_biomes_map.get(slug, []),
 	}
 
 
@@ -730,6 +786,7 @@ def main() -> int:
 	lang_slug_map = build_lang_slug_map(lang_display, implemented)
 
 	evolves_from_map = build_evolves_from_map(implemented)
+	spawn_biomes_map = build_spawn_biomes_map(LOCAL_MOD_ROOT or DEFAULT_LOCAL_MOD_ROOT)
 
 	ROSTER_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -812,7 +869,7 @@ def main() -> int:
 			"resolved_slug": slug if in_mod else None,
 			"img_rel_path": f"./src/assets/images/the_digimod/roster/{fname}",
 			"in_mod": in_mod,
-			"stats": fetch_digimon_stats(slug, evolves_from_map) if in_mod else None,
+			"stats": fetch_digimon_stats(slug, evolves_from_map, spawn_biomes_map) if in_mod else None,
 			"credit": credit,
 			"planned_stage": TIER_STAGE_LABEL.get(source_tier_key) if not in_mod else None,
 		}
