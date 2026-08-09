@@ -2460,7 +2460,7 @@ footer {
 }
 
 .spawn-biome-list {
-  max-height: 6.5rem;
+  max-height: 4.5rem;
   overflow-y: auto;
   padding-right: 0.4rem;
   line-height: 1.6;

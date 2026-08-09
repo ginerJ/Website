@@ -2662,9 +2662,18 @@
             // 200+ - without a capped, independently-scrolling box here the
             // dt/dd list itself grows unbounded and blows out the rotator
             // card's locked height (see lockStatsHeight()) for every entry,
-            // not just the biome-heavy ones.
+            // not just the biome-heavy ones. Split vanilla vs. modded into
+            // their own rows/boxes so a modpack-heavy list doesn't bury the
+            // (usually short) vanilla one.
             if (!value.length) return;
-            value = '<div class="spawn-biome-list">' + value.map(function (id) { return '<code>' + id + '</code>'; }).join(', ') + '</div>';
+            var vanillaBiomes = value.filter(function (id) { return id.indexOf('minecraft:') === 0; });
+            var moddedBiomes = value.filter(function (id) { return id.indexOf('minecraft:') !== 0; });
+            var biomeBox = function (ids) {
+              return '<div class="spawn-biome-list">' + ids.map(function (id) { return '<code>' + id + '</code>'; }).join(', ') + '</div>';
+            };
+            if (vanillaBiomes.length) rows += '<dt>Vanilla Spawn Biomes</dt><dd>' + biomeBox(vanillaBiomes) + '</dd>';
+            if (moddedBiomes.length) rows += '<dt>Modded Spawn Biomes</dt><dd>' + biomeBox(moddedBiomes) + '</dd>';
+            return;
           } else if (key === 'evolves_into' || key === 'evolves_from') {
             if (!value.length) return;
             value = value.map(function (slug) {
