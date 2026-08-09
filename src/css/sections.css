@@ -1774,11 +1774,25 @@ footer {
   /* Scroll the card list in its own box (matching the sticky rotator's
      height) instead of the whole page, so hovering it and using the wheel
      browses the list without fighting page scroll. Same treatment for the
-     Items index (mod-content-list) as the Mobs roster (lore-bullet-list). */
+     Items index (mod-content-list) as the Mobs roster (lore-bullet-list).
+
+     flex-basis: 0 (the "0" in "flex: 1 1 0") is the important part, not
+     just min-height: 0. With flex-basis: auto, this list's own (huge -
+     hundreds of <li>s) content height was what align-items: stretch used
+     to size item-toc in the first place, and a max-height clamped it
+     independently afterwards - whichever of those two numbers was smaller
+     than the sibling rotator card's real height left blank filler below
+     the visibly-shorter list. Zeroing the basis makes this list contribute
+     ~nothing to item-toc's own height, so item-toc's height (and thus the
+     whole row's height, since items-rotator has align-self: flex-start and
+     doesn't stretch) ends up driven purely by the rotator card. flex-grow
+     then expands this list to fill 100% of whatever that turns out to be,
+     so it always matches exactly - no fixed max-height needed. */
   .mobs-overview .item-toc .lore-bullet-list,
   .items-overview .item-toc .mod-content-list,
   .blocks-overview .item-toc .mod-content-list {
-    max-height: calc(100vh - 8rem);
+    flex: 1 1 0;
+    min-height: 0;
     overflow-y: auto;
     padding-right: 0.5rem;
   }
