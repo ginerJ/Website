@@ -49,6 +49,7 @@ html {
 #section-mobs,
 #section-items,
 #section-blocks,
+#section-mod-relations,
 #obtaining,
 #crafting,
 #tipped-darts,
@@ -1776,25 +1777,26 @@ footer {
      browses the list without fighting page scroll. Same treatment for the
      Items index (mod-content-list) as the Mobs roster (lore-bullet-list).
 
-     flex-basis: 0 (the "0" in "flex: 1 1 0") is the important part, not
-     just min-height: 0. With flex-basis: auto, this list's own (huge -
-     hundreds of <li>s) content height was what align-items: stretch used
-     to size item-toc in the first place, and a max-height clamped it
-     independently afterwards - whichever of those two numbers was smaller
-     than the sibling rotator card's real height left blank filler below
-     the visibly-shorter list. Zeroing the basis makes this list contribute
-     ~nothing to item-toc's own height, so item-toc's height (and thus the
-     whole row's height, since items-rotator has align-self: flex-start and
-     doesn't stretch) ends up driven purely by the rotator card. flex-grow
-     then expands this list to fill 100% of whatever that turns out to be,
-     so it always matches exactly - no fixed max-height needed. */
+     A generic flex-basis: 0 trick was tried here to make the list match
+     whatever height the sibling rotator card naturally is, but that broke
+     every OTHER list (Configs, Mod Relations, ...) whose rotator card is
+     normally short - the list shrunk down to match it instead of showing a
+     useful number of rows. A near-viewport-height cap is the right default
+     for everyone; the one section where the rotator can legitimately grow
+     taller than this (Mobs, via the Spawn Biomes boxes) gets a JS-driven
+     override instead - see syncMobsListHeight() below. */
   .mobs-overview .item-toc .lore-bullet-list,
   .items-overview .item-toc .mod-content-list,
   .blocks-overview .item-toc .mod-content-list {
-    flex: 1 1 0;
-    min-height: 0;
+    max-height: calc(100vh - 8rem);
     overflow-y: auto;
     padding-right: 0.5rem;
+  }
+  /* Mod Relations only has 16 entries total - the near-viewport-height cap
+     above would just show all of them with no scroll at all, growing the
+     card way taller than it needs to be. ~10 rows visible is plenty. */
+  #section-mod-relations .mod-content-list {
+    max-height: 28rem;
   }
   .mobs-overview .item-toc .lore-bullet-list::-webkit-scrollbar,
   .items-overview .item-toc .mod-content-list::-webkit-scrollbar,
@@ -2474,7 +2476,7 @@ footer {
 }
 
 .spawn-biome-list {
-  max-height: 4.5rem;
+  max-height: 7.5rem;
   overflow-y: auto;
   padding-right: 0.4rem;
   line-height: 1.6;
@@ -2569,3 +2571,4 @@ footer {
   font-size: 0.85rem;
   font-style: italic;
 }
+
