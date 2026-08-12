@@ -738,7 +738,7 @@ a {
   justify-content: center;
   min-height: 18vh;
   height: auto;
-  padding: clamp(0.85rem, 2vw, 1.4rem);
+  padding: clamp(0.85rem, 2vw, 1.35rem);
   border: 1px solid rgba(0, 0, 0, 0.35);
   border-radius: 0.2rem;
   box-shadow: var(--surface-shadow);
@@ -753,8 +753,8 @@ a {
   align-items: center;
   justify-content: center;
   font-size: clamp(1.05rem, 1.9vw, 1.45rem);
-  min-height: 13.03rem;
-  padding: 1.25rem;
+  min-height: 12.93rem;
+  padding: 1.2rem;
   text-align: center;
   border: 1px solid rgba(0, 0, 0, 0.35);
   border-radius: 0.2rem;
