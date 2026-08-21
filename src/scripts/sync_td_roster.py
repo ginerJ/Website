@@ -797,8 +797,10 @@ def main() -> int:
 	all_tier_titles[EXTRA_LIST_TIER_KEY] = EXTRA_LIST_TITLE
 	group_order = [key for key, _t, _s in TIER_LISTS] + [EXTRA_LIST_TIER_KEY]
 
-	def add_group(label_id: str, label: str, cards: list) -> list[str]:
-		lines = [f'            <li id="{label_id}" class="mob-group-label">{html.escape(label)}</li>']
+	def add_group(label_id: str, label: str, cards: list, include_header: bool = True) -> list[str]:
+		lines = []
+		if include_header:
+			lines.append(f'            <li id="{label_id}" class="mob-group-label">{html.escape(label)}</li>')
 		for tier_key in group_order:
 			tier_cards = [c for c in cards if c["tier_key"] == tier_key]
 			if not tier_cards:
@@ -905,7 +907,10 @@ def main() -> int:
 	in_mod_cards = [c for c in all_cards if c["in_mod"]]
 	modeled_cards = [c for c in all_cards if not c["in_mod"]]
 
-	list_lines = add_group("section-mobs-in-mod", "In The Mod", in_mod_cards)
+	# The "In The Mod" group label + the live search box are hardcoded in
+	# td_lore.html, immediately before the TD-ROSTER:LIST markers, so this
+	# resync must not regenerate that header line (it would duplicate it).
+	list_lines = add_group("section-mobs-in-mod", "In The Mod", in_mod_cards, include_header=False)
 	list_lines += add_group("section-mobs-modeled", "Model Only — Not Yet Implemented", modeled_cards)
 
 	# Regex match starts at "<!--"/"//", existing indentation before it is

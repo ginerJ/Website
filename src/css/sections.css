@@ -216,6 +216,45 @@ a {
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
+.roster-search-wrap {
+  position: relative;
+  margin: 0.6rem 0 0.85rem;
+}
+
+.roster-search-icon {
+  position: absolute;
+  left: 0.1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-special);
+  pointer-events: none;
+}
+
+.roster-search-input {
+  width: 100%;
+  padding: 0.4rem 0.1rem 0.4rem 1.5rem;
+  font-size: 0.95rem;
+  outline: none;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-secondary-selected);
+  color: var(--color-text);
+  border-radius: 0;
+  transition: border-color 0.2s ease;
+}
+
+.roster-search-input::placeholder {
+  color: var(--color-text);
+  opacity: 0.55;
+}
+
+.roster-search-input:focus {
+  outline: none;
+  border-bottom-color: var(--color-special);
+}
+
 .secondary-button {
   background: linear-gradient(165deg, rgba(65, 66, 69, 0.45) 0%, var(--color-secondary) 100%);
   color: var(--color-text);
@@ -1869,6 +1908,16 @@ footer {
 }
 
 .mobs-overview .lore-bullet-list li.mob-tier-label::before {
+  display: none;
+}
+
+.mobs-overview .lore-bullet-list li.roster-search-item {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 0.25rem;
+}
+
+.mobs-overview .lore-bullet-list li.roster-search-item::before {
   display: none;
 }
 
