@@ -13,11 +13,11 @@
 }
 
 :root {
-  --color-primary: #1e1f22;
+  --color-primary: #26282d;
   --color-special: #299fa2;
   --color-orange: #c56738;
-  --color-secondary: #2b2d30;
-  --color-secondary-selected: #414245;
+  --color-secondary: #34363c;
+  --color-secondary-selected: #585c65;
   --color-text: #b3aea9;
   --color-tb: #67ae52;
   --color-td: #2ef0dc;
@@ -27,8 +27,9 @@
   --color-am: #bdb093;
   --color-txc: #d6a700;
   --color-mg: #9c8c81;
-  --surface-glow: rgba(255, 255, 255, 0.03);
-  --surface-shadow: 0 18px 34px -24px rgba(0, 0, 0, 0.75);
+  --surface-glow: rgba(255, 255, 255, 0.05);
+  --surface-shadow: 0 18px 34px -22px rgba(0, 0, 0, 0.85);
+  --ad-dot: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72'%3E%3Crect width='6' height='6' fill='white' fill-opacity='0.16'/%3E%3C/svg%3E");
 }
 
 * {
@@ -109,7 +110,7 @@ html {
 }
 
 body {
-  background: radial-gradient(circle at top, rgba(65, 66, 69, 0.35), transparent 38%), var(--color-primary);
+  background-color: var(--color-primary);
   color: var(--color-text);
   font-family: 'Lato', sans-serif;
   display: flex;
@@ -210,7 +211,7 @@ a {
 
 .text-box-secondary {
   background-color: var(--color-secondary);
-  border: 1px solid rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(0, 0, 0, 0.5);
   color: var(--color-text);
   border-radius: 0.2rem;
   transition: background-color 0.2s ease, border-color 0.2s ease;
@@ -256,9 +257,9 @@ a {
 }
 
 .secondary-button {
-  background: linear-gradient(165deg, rgba(65, 66, 69, 0.45) 0%, var(--color-secondary) 100%);
+  background-color: var(--color-secondary);
   color: var(--color-text);
-  border: 1px solid rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(0, 0, 0, 0.5);
   border-radius: 0.2rem;
   transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
   cursor: pointer;
@@ -286,9 +287,9 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border: 1px solid rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(0, 0, 0, 0.5);
   border-radius: 0.2rem;
-  background: rgba(43, 45, 48, 0.88);
+  background: var(--color-secondary);
   backdrop-filter: blur(8px);
   box-shadow: var(--surface-shadow);
 }
@@ -306,7 +307,7 @@ a {
   height: 2.5rem;
   border: 0;
   border-radius: 0;
-  background: #35373b;
+  background: #45484e;
   color: var(--color-text);
   cursor: pointer;
   box-shadow:
@@ -316,7 +317,7 @@ a {
 }
 
 .sidebar-toggle-btn:hover {
-  background: #3d3f43;
+  background: #4d5058;
   color: white;
   box-shadow:
     inset -2px -2px 0 var(--bevel-hi),
@@ -349,7 +350,7 @@ a {
   transition: transform 0.28s ease;
   z-index: 130;
   border-right: 1px solid var(--color-secondary-selected);
-  background: linear-gradient(180deg, rgba(65, 66, 69, 0.25) 0%, var(--color-secondary) 45%);
+  background-color: var(--color-secondary);
   box-shadow: 18px 0 36px -28px rgba(0, 0, 0, 0.95);
   padding: 1rem 1rem 1.15rem;
   overflow-y: auto;
@@ -372,7 +373,7 @@ a {
   width: 2.1rem;
   height: 2.1rem;
   border-radius: 999px;
-  border: 1px solid rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(0, 0, 0, 0.5);
   background: var(--color-primary);
   color: var(--color-text);
   cursor: pointer;
@@ -397,7 +398,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #35373b;
+  background: #45484e;
   border: 0;
   border-radius: 0;
   padding: 0.6rem 0.72rem;
@@ -410,7 +411,7 @@ a {
 }
 
 .site-sidebar-section-toggle:hover {
-  background: #3d3f43;
+  background: #4d5058;
   box-shadow:
     inset -2px -2px 0 var(--bevel-hi),
     inset 2px 2px 0 var(--bevel-lo);
@@ -762,7 +763,7 @@ a {
   margin: 0 auto;
   width: min(100%, 60rem);
   background-color: var(--color-primary);
-  border: 1px solid rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(0, 0, 0, 0.5);
   border-radius: 0.2rem;
   padding: clamp(1rem, 2.5vw, 2rem);
   margin-top: 1rem;
@@ -771,14 +772,14 @@ a {
 .hero {
   width: min(1200px, calc(100% - 1.5rem));
   margin: 0 auto 0.95rem;
-  background: linear-gradient(165deg, rgba(65, 66, 69, 0.32) 0%, var(--color-secondary) 70%);
+  background-color: var(--color-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 18vh;
   height: auto;
   padding: clamp(0.85rem, 2vw, 1.35rem);
-  border: 1px solid rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(0, 0, 0, 0.5);
   border-radius: 0.2rem;
   box-shadow: var(--surface-shadow);
 }
@@ -786,7 +787,7 @@ a {
 .hero-text {
   width: min(1200px, calc(100% - 1.5rem));
   margin: 0 auto 0.95rem;
-  background: linear-gradient(165deg, rgba(65, 66, 69, 0.32) 0%, var(--color-secondary) 70%);
+  background-color: var(--color-secondary);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -795,7 +796,7 @@ a {
   min-height: 12.93rem;
   padding: 1.2rem;
   text-align: center;
-  border: 1px solid rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(0, 0, 0, 0.5);
   border-radius: 0.2rem;
   box-shadow: var(--surface-shadow);
   position: relative;
@@ -915,7 +916,7 @@ a {
   width: 100%;
   padding: 0.4rem 0.55rem 0.4rem 0.4rem;
   overflow: hidden;
-  background: #35373b;
+  background: #45484e;
   color: var(--color-text);
   text-decoration: none;
   border: 0;
@@ -927,7 +928,7 @@ a {
 }
 
 a.hero-badge-card:hover {
-  background: #3d3f43;
+  background: #4d5058;
   box-shadow:
     inset -2px -2px 0 var(--bevel-hi),
     inset 2px 2px 0 var(--bevel-lo);
@@ -1020,7 +1021,7 @@ a.hero-badge-card:hover {
 .lore-section-title {
   margin: -1.5rem -1.5rem 0;
   padding: 0.55rem 1rem;
-  background: #35373b;
+  background: #45484e;
   color: #ece7e0;
   font-size: clamp(0.95rem, 1.6vw, 1.15rem);
   font-weight: 800;
@@ -1212,10 +1213,10 @@ a.hero-badge-card:hover {
 
 .lore-box {
   padding: 1.5rem;
-  background: linear-gradient(165deg, rgba(65, 66, 69, 0.2) 0%, var(--color-secondary) 72%);
+  background-color: var(--color-secondary);
   color: var(--color-text);
   margin: 0 auto;
-  border: 1px solid rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(0, 0, 0, 0.5);
   border-radius: 0.2rem;
   box-shadow: var(--surface-shadow);
   margin-bottom: 1rem;
@@ -1279,7 +1280,7 @@ a.hero-badge-card:hover {
   width: 2.4rem;
   height: 2.4rem;
   border-radius: 999px;
-  border: 1px solid rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(0, 0, 0, 0.5);
   background: var(--color-secondary);
   color: var(--color-text);
   font-size: 1.2rem;
@@ -1346,8 +1347,8 @@ details[open] > summary::after {
   display: flex;
   flex: 1 1 auto;
   align-items: stretch;
-  background-color: #101012;
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 3px, transparent 3px), radial-gradient(circle, rgba(255, 255, 255, 0.08) 3px, transparent 3px);
+  background-color: #060607;
+  background-image: var(--ad-dot), var(--ad-dot);
   background-size: 72px 72px;
   background-position: 0 0, 36px 36px;
   transition: background-color 0.2s ease;
@@ -1369,7 +1370,7 @@ details[open] > summary::after {
 
 .mobile-ad-slot {
   height: auto;
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 3px, transparent 3px), radial-gradient(circle, rgba(255, 255, 255, 0.08) 3px, transparent 3px);
+  background-image: var(--ad-dot), var(--ad-dot);
   background-size: 72px 72px;
   background-position: 0 0, 36px 36px;
   transition: background-color 0.2s ease;
@@ -1426,7 +1427,7 @@ details[open] > summary::after {
 footer {
   width: min(1200px, calc(100% - 1.5rem));
   margin: 0 auto 1rem auto;
-  border: 1px solid rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(0, 0, 0, 0.5);
   border-radius: 0.2rem;
 }
 
@@ -1974,7 +1975,7 @@ footer {
   font-family: 'Courier New', 'Consolas', monospace;
   font-size: 0.78rem;
   color: var(--color-special);
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.5);
   padding: 0.1rem 0.35rem;
   box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.55);
   white-space: normal;
@@ -2181,7 +2182,7 @@ footer {
   margin: 0;
   padding: 0.9rem 1rem 1rem;
   background-color: var(--color-primary);
-  border: 1px solid rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(0, 0, 0, 0.5);
   border-radius: 6px;
   min-width: 0;
 }
@@ -2547,7 +2548,7 @@ footer {
   font-family: 'Courier New', 'Consolas', monospace;
   font-size: 0.78rem;
   color: var(--color-special);
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.5);
   padding: 0.1rem 0.35rem;
   box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.55);
   white-space: normal;
