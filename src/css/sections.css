@@ -1346,7 +1346,8 @@ details[open] > summary::after {
   height: 100%;
   display: flex;
   flex: 1 1 auto;
-  align-items: stretch;
+  align-items: center;
+  justify-content: center;
   background-color: #060607;
   background-image: var(--ad-dot), var(--ad-dot);
   background-size: 72px 72px;
