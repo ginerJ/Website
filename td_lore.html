@@ -89,7 +89,32 @@
 
 
     <div class="w-full xl:w-[70vw] xl:ml-2 xl:mr-2">
-      <img src="./src/assets/images/the_digimod/render.png" class="hero-render"></img>
+      <div class="hero-render-swap" id="hero-render-swap">
+        <img src="./src/assets/images/the_digimod/render.png" class="hero-render hero-render-base">
+        <img src="./src/assets/images/the_digimod/render-cutebug.png" class="hero-render hero-render-alt">
+      </div>
+      <script>
+        (function () {
+          var CYCLE = 28;
+          var wrap = document.getElementById('hero-render-swap');
+          var imgs = wrap.querySelectorAll('img');
+          var showingAlt = false;
+
+          function setDelay(delay) {
+            imgs.forEach(function (img) { img.style.animation = 'none'; });
+            void wrap.offsetHeight;
+            wrap.style.setProperty('--hero-render-delay', delay + 's');
+            imgs.forEach(function (img) { img.style.animation = ''; });
+          }
+
+          setDelay(-Math.random() * CYCLE);
+
+          wrap.addEventListener('click', function () {
+            showingAlt = !showingAlt;
+            setDelay(-(showingAlt ? 0.45 : 0.94) * CYCLE);
+          });
+        })();
+      </script>
 
 
       <div class="about-row">
@@ -2183,11 +2208,6 @@
 
             <img src="./src/assets/images/the_digimod/black-digitron.png" class="mob-pic">
             <h2 id="evo-digitron" class="lore-box"></h2>
-
-            <img src="./src/assets/images/the_digimod/evo-lines4.png" class="mob-pic">
-            <img src="./src/assets/images/the_digimod/evo-lines.png" class="mob-pic">
-            <img src="./src/assets/images/the_digimod/evo-lines2.png" class="mob-pic">
-            <img src="./src/assets/images/the_digimod/evo-lines3.png" class="mob-pic">
           </div>
         </details>
       </div>
