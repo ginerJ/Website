@@ -55,6 +55,7 @@ const navbarHTML = `
 <div id="site-sidebar-overlay" class="site-sidebar-overlay" aria-hidden="true"></div>
 
 <aside id="site-sidebar-panel" class="site-sidebar-panel" aria-hidden="true" role="dialog" aria-label="Site navigation sidebar">
+ <div class="site-sidebar-panel-inner">
   <div class="site-sidebar-header">
     <h3 class="font-bold" style="font-size: 1.2rem;">Explore</h3>
     <button id="sidebar-close-btn" class="site-sidebar-close" type="button" aria-label="Close navigation sidebar">
@@ -147,6 +148,7 @@ const navbarHTML = `
       </div>
     </section>
   </div>
+ </div>
 </aside>
 `;
 

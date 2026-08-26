@@ -341,14 +341,25 @@ a {
 }
 
 .site-sidebar-panel {
+  /* Fixed shell sized with `inset` (not an explicit width/height), which is the
+     only sizing form that renders correctly on a `position: fixed` element under
+     the page-wide `zoom`. Explicit lengths (or a `zoom` counter-scale) on a fixed
+     element are unreliable here: Chromium computes them against the pre-zoom box
+     and only fixes itself after a later, unrelated forced reflow. The actual
+     slide-in panel is the non-fixed `.site-sidebar-panel-inner` below, which is
+     sized in percentages of this shell and unaffected by that bug. */
   position: fixed;
-  top: 0;
-  left: 0;
-  width: min(380px, calc(100vw - 1.2rem));
-  height: 100vh;
+  inset: 0;
+  pointer-events: none;
+  z-index: 130;
+}
+
+.site-sidebar-panel-inner {
+  height: 100%;
+  width: min(380px, calc(100% - 1.2rem));
+  pointer-events: auto;
   transform: translateX(-105%);
   transition: transform 0.28s ease;
-  z-index: 130;
   border-right: 1px solid var(--color-secondary-selected);
   background-color: var(--color-secondary);
   box-shadow: 18px 0 36px -28px rgba(0, 0, 0, 0.95);
@@ -356,7 +367,7 @@ a {
   overflow-y: auto;
 }
 
-.site-sidebar-panel.open {
+.site-sidebar-panel.open .site-sidebar-panel-inner {
   transform: translateX(0);
 }
 
@@ -1569,8 +1580,8 @@ footer {
     border-radius: 0.2rem;
   }
 
-  .site-sidebar-panel {
-    width: min(340px, calc(100vw - 0.85rem));
+  .site-sidebar-panel-inner {
+    width: min(340px, calc(100% - 0.85rem));
   }
 }
 
